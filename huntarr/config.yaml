@@ -1,6 +1,6 @@
 name: "Huntarr"
 slug: "huntarr"
-version: "0.1"
+version: "latest"
 logo: "logo.png"
 description: >
   A specialized utility that automates discovering missing and upgrading your media collection! 
