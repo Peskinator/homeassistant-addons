@@ -24,7 +24,7 @@
     {
       "name": "Cleanuparr",
       "slug": "cleanuparr",
-      "description": "Cleanuparr: automated cleanup for stalled/blocked downloads",
+      "description": "Cleanuparr add-on",
       "url": "https://github.com/Peskinator/homeassistant-addons",
       "path": "cleanuparr"
     }
