@@ -3,7 +3,7 @@ slug: "librarydownloadarr"
 version: "0.1"
 logo: "https://raw.githubusercontent.com/kikootwo/LibraryDownloadarr/main/librarydownloadarr.png"
 description: >
-  LibraryDownloadarr: a self-hosted web interface to browse and download
+  A self-hosted web interface to browse and download
   media from your Plex libraries.
 url: "https://github.com/kikootwo/LibraryDownloadarr"
 
