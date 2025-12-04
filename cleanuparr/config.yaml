@@ -1,6 +1,6 @@
 name: "Cleanuparr"
 slug: "cleanuparr"
-version: "0.1"
+version: "latest"
 logo: "logo.png"
 description: >
   Automatic cleanup tool for Sonarr/Radarr/Lidarr.
