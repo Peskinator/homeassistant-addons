@@ -1,6 +1,7 @@
 name: "Huntarr"
 slug: "Huntarr"
-version: "latest"
+version: "8.2.10"
+logo: "https://raw.githubusercontent.com/plexguide/Huntarr.io/main/frontend/static/logo/128.png"
 description: >
   A specialized utility that automates discovering missing and upgrading your media collection! 
 url: "https://github.com/plexguide/Huntarr.io"

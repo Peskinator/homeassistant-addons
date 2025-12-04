@@ -1,6 +1,7 @@
 name: "LibraryDownloadarr"
 slug: "librarydownloadarr"
 version: "latest"
+logo: "https://raw.githubusercontent.com/kikootwo/LibraryDownloadarr/main/librarydownloadarr.png"
 description: >
   LibraryDownloadarr: a self-hosted web interface to browse and download
   media from your Plex libraries.
