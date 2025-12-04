@@ -1,9 +1,8 @@
 name: "Maintainerr"
-slug: "maintainerr"
-version: "0.1"
-logo: "logo.png"
+slug: "Maintainerr"
+version: "latest"
 description: >
-  Maintenance tool for the Plex ecosystem.
+  Maintenance tool for the Plex ecosystem
 url: "https://github.com/Maintainerr/Maintainerr"
 
 arch:
