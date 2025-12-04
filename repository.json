@@ -1,32 +1,6 @@
 {
-  "addons": [
-    {
-      "name": "LibraryDownloadarr",
-      "slug": "librarydownloadarr",
-      "description": "LibraryDownloadarr add-on",
-      "url": "https://github.com/Peskinator/homeassistant-addons",
-      "path": "librarydownloadarr"
-    },
-    {
-      "name": "Huntarr",
-      "slug": "huntarr",
-      "description": "Huntarr add-on",
-      "url": "https://github.com/Peskinator/homeassistant-addons",
-      "path": "huntarr"
-    },
-    {
-      "name": "Maintainerr",
-      "slug": "maintainerr",
-      "description": "Maintainerr add-on",
-      "url": "https://github.com/Peskinator/homeassistant-addons",
-      "path": "maintainerr"
-    },
-    {
-      "name": "Cleanuparr",
-      "slug": "cleanuparr",
-      "description": "Cleanuparr add-on",
-      "url": "https://github.com/Peskinator/homeassistant-addons",
-      "path": "cleanuparr"
-    }
-  ]
+  "name": "Peskinator Add-ons",
+  "udev": true,
+  "url": "https://github.com/Peskinator/homeassistant-addons",
+  "maintainer": "Peskinator"
 }
