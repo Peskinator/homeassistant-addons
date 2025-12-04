@@ -1,0 +1,51 @@
+name: "Cleanuparr"
+slug: "cleanuparr"
+version: "2.4.7"
+description: >
+  Cleanuparr: automatic cleanup tool for Sonarr/Radarr/Lidarr and supported
+  download clients. Removes stalled/blocked downloads and optionally triggers
+  searches to replace removed items.
+url: "https://github.com/Cleanuparr/Cleanuparr"
+
+arch:
+  - amd64
+
+startup: application
+boot: auto
+
+# Expose the Cleanuparr web UI
+ports:
+  "11011/tcp": 11011
+ports_description:
+  "11011/tcp": "Cleanuparr web interface"
+
+# Web UI / health checks
+webui: "http://[HOST]:[PORT:11011]/"
+watchdog: "tcp://[HOST]:[PORT:11011]"
+
+# Environment values MUST be strings
+environment:
+  PORT: "11011"
+  PUID: "1000"
+  PGID: "1000"
+  TZ: "Etc/UTC"
+
+options:
+  port: 11011
+  puid: 1000
+  pgid: 1000
+  tz: "Etc/UTC"
+
+schema:
+  port: "int?"
+  puid: "int?"
+  pgid: "int?"
+  tz: "str?"
+
+logo: "https://raw.githubusercontent.com/Cleanuparr/Cleanuparr/main/Logo/256.png"
+
+# IMPORTANT: no tag here — Supervisor will append :<version> when appropriate
+image: "ghcr.io/cleanuparr/cleanuparr"
+
+# Treat this as a generic container image
+legacy: true
