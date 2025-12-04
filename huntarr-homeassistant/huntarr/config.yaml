@@ -1,0 +1,43 @@
+name: "Huntarr"
+slug: "Huntarr"
+version: "latest"
+description: >
+  A specialized utility that automates discovering missing and upgrading your media collection! 
+url: "https://github.com/plexguide/Huntarr.io"
+
+arch:
+  - amd64
+  # add more if/when the image supports them:
+  # - aarch64
+  # - armv7
+  # - armhf
+  # - i386
+
+startup: application
+boot: auto
+
+# Expose the LibraryDownloadarr web UI
+ports:
+  "9705/tcp": 9705
+ports_description:
+  "9705/tcp": "Huntarr web interface"
+
+# Web UI / health checks
+webui: "http://[HOST]:[PORT:9705]/"
+watchdog: "tcp://[HOST]:[PORT:9705]"
+
+# Environment values MUST be strings
+environment:
+  PORT: "9705"
+  LOG_LEVEL: "info"
+  # Use HA's standard persistent volume for add-ons
+  DATABASE_PATH: "/data/huntarr.db"
+  TZ: "America/New_York"
+
+# IMPORTANT: no tag here (no :latest)
+# Supervisor will automatically append :<version>, so this becomes
+# ghcr.io/kikootwo/librarydownloadarr:latest
+image: "ghcr.io/plexguide/huntarr" 
+
+# Treat this as a generic container image
+legacy: true

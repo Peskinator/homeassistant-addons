@@ -1,0 +1,44 @@
+name: "LibraryDownloadarr"
+slug: "librarydownloadarr"
+version: "latest"
+description: >
+  LibraryDownloadarr: a self-hosted web interface to browse and download
+  media from your Plex libraries.
+url: "https://github.com/kikootwo/LibraryDownloadarr"
+
+arch:
+  - amd64
+  # add more if/when the image supports them:
+  # - aarch64
+  # - armv7
+  # - armhf
+  # - i386
+
+startup: application
+boot: auto
+
+# Expose the LibraryDownloadarr web UI
+ports:
+  "5069/tcp": 5069
+ports_description:
+  "5069/tcp": "LibraryDownloadarr web interface"
+
+# Web UI / health checks
+webui: "http://[HOST]:[PORT:5069]/"
+watchdog: "tcp://[HOST]:[PORT:5069]"
+
+# Environment values MUST be strings
+environment:
+  PORT: "5069"
+  LOG_LEVEL: "info"
+  # Use HA's standard persistent volume for add-ons
+  DATABASE_PATH: "/data/librarydownloadarr.db"
+  TZ: "America/New_York"
+
+# IMPORTANT: no tag here (no :latest)
+# Supervisor will automatically append :<version>, so this becomes
+# ghcr.io/kikootwo/librarydownloadarr:latest
+image: "ghcr.io/kikootwo/librarydownloadarr"
+
+# Treat this as a generic container image
+legacy: true

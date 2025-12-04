@@ -1,0 +1,43 @@
+name: "Maintainerr"
+slug: "Maintainerr"
+version: "latest"
+description: >
+  Maintenance tool for the Plex ecosystem
+url: "https://github.com/Maintainerr/Maintainerr"
+
+arch:
+  - amd64
+  # add more if/when the image supports them:
+  # - aarch64
+  # - armv7
+  # - armhf
+  # - i386
+
+startup: application
+boot: auto
+
+# Expose the LibraryDownloadarr web UI
+ports:
+  "6246/tcp": 6246
+ports_description:
+  "6246/tcp": "Maintainerr web interface"
+
+# Web UI / health checks
+webui: "http://[HOST]:[PORT:6246]/"
+watchdog: "tcp://[HOST]:[PORT:6246]"
+
+# Environment values MUST be strings
+environment:
+  PORT: "6246"
+  LOG_LEVEL: "info"
+  # Use HA's standard persistent volume for add-ons
+  DATABASE_PATH: "/data/maintainerr.db"
+  TZ: "America/New_York"
+
+# IMPORTANT: no tag here (no :latest)
+# Supervisor will automatically append :<version>, so this becomes
+# ghcr.io/kikootwo/librarydownloadarr:latest
+image: "ghcr.io/maintainerr/maintainerr" 
+
+# Treat this as a generic container image
+legacy: true
