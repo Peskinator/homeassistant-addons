@@ -1,6 +1,6 @@
 name: "LibraryDownloadarr"
 slug: "librarydownloadarr"
-version: "latest"
+version: "0.1"
 logo: "https://raw.githubusercontent.com/kikootwo/LibraryDownloadarr/main/librarydownloadarr.png"
 description: >
   LibraryDownloadarr: a self-hosted web interface to browse and download
