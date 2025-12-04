@@ -3,30 +3,30 @@
     {
       "name": "LibraryDownloadarr",
       "slug": "librarydownloadarr",
-      "description": "Wrapper for https://github.com/kikootwo/LibraryDownloadarr",
+      "description": "LibraryDownloadarr add-on",
       "url": "https://github.com/Peskinator/homeassistant-addons",
-      "path": "librarydownloadarr-homeassistant/librarydownloadarr"
+      "path": "librarydownloadarr"
     },
     {
       "name": "Huntarr",
       "slug": "huntarr",
       "description": "Huntarr add-on",
       "url": "https://github.com/Peskinator/homeassistant-addons",
-      "path": "huntarr-homeassistant/huntarr"
+      "path": "huntarr"
     },
     {
       "name": "Maintainerr",
       "slug": "maintainerr",
       "description": "Maintainerr add-on",
       "url": "https://github.com/Peskinator/homeassistant-addons",
-      "path": "maintainerr-homeassistant/maintainerr"
+      "path": "maintainerr"
     },
     {
       "name": "Cleanuparr",
       "slug": "cleanuparr",
       "description": "Cleanuparr: automated cleanup for stalled/blocked downloads",
       "url": "https://github.com/Peskinator/homeassistant-addons",
-      "path": "cleanuparr-homeassistant/cleanuparr"
+      "path": "cleanuparr"
     }
   ]
 }
