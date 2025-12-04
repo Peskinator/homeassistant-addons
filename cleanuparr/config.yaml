@@ -3,7 +3,7 @@ slug: "cleanuparr"
 version: "0.1"
 logo: "https://raw.githubusercontent.com/Cleanuparr/Cleanuparr/main/Logo/256.png"
 description: >
-  Cleanuparr: automatic cleanup tool for Sonarr/Radarr/Lidarr.
+  Automatic cleanup tool for Sonarr/Radarr/Lidarr.
 url: "https://github.com/Cleanuparr/Cleanuparr"
 
 arch:
