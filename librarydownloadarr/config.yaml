@@ -1,6 +1,6 @@
 name: "LibraryDownloadarr"
 slug: "librarydownloadarr"
-version: "0.1"
+version: "latest"
 logo: "logo.png"
 description: >
   A self-hosted web interface to browse and download
