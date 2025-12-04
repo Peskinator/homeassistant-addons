@@ -1,7 +1,7 @@
 name: "Maintainerr"
 slug: "maintainerr"
 version: "0.1"
-logo: "https://raw.githubusercontent.com/Maintainerr/Maintainerr/main/ui/public/logo_black.svg"
+logo: "logo.png"
 description: >
   Maintenance tool for the Plex ecosystem.
 url: "https://github.com/Maintainerr/Maintainerr"
