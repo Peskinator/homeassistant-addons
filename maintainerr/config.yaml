@@ -1,43 +1,32 @@
 name: "Maintainerr"
-slug: "Maintainerr"
-version: "latest"
+slug: "maintainerr"
+version: "0.1.0"
 description: >
   Maintenance tool for the Plex ecosystem
 url: "https://github.com/Maintainerr/Maintainerr"
 
 arch:
   - amd64
-  # add more if/when the image supports them:
-  # - aarch64
-  # - armv7
-  # - armhf
-  # - i386
 
 startup: application
 boot: auto
 
-# Expose the LibraryDownloadarr web UI
 ports:
   "6246/tcp": 6246
 ports_description:
   "6246/tcp": "Maintainerr web interface"
 
-# Web UI / health checks
 webui: "http://[HOST]:[PORT:6246]/"
 watchdog: "tcp://[HOST]:[PORT:6246]"
 
-# Environment values MUST be strings
+# Environment values MUST be strings.
+# Only TZ is actually used by Maintainerr here.
 environment:
-  PORT: "6246"
-  LOG_LEVEL: "info"
-  # Use HA's standard persistent volume for add-ons
-  DATABASE_PATH: "/data/maintainerr.db"
   TZ: "America/New_York"
 
-# IMPORTANT: no tag here (no :latest)
-# Supervisor will automatically append :<version>, so this becomes
-# ghcr.io/kikootwo/librarydownloadarr:latest
-image: "ghcr.io/maintainerr/maintainerr" 
+# We are going to build a local wrapper image from Dockerfile,
+# so REMOVE the old image line.
+# image: "ghcr.io/maintainerr/maintainerr"
 
-# Treat this as a generic container image
+# We can keep this so Supervisor treats it like a generic container image.
 legacy: true
