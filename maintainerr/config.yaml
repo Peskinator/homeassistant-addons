@@ -1,8 +1,8 @@
 name: "Maintainerr"
 slug: "maintainerr"
-version: "0.1.0"
+version: "latest"
 description: >
-  Maintenance tool for the Plex ecosystem
+  Maintenance tool for the Plex ecosystem.
 url: "https://github.com/Maintainerr/Maintainerr"
 
 arch:
@@ -19,14 +19,24 @@ ports_description:
 webui: "http://[HOST]:[PORT:6246]/"
 watchdog: "tcp://[HOST]:[PORT:6246]"
 
-# Environment values MUST be strings.
-# Only TZ is actually used by Maintainerr here.
+# Persist Maintainerr's data:
+# Maintainerr writes everything to /opt/data in the container.
+# Here we tell HA to mount the add-on's persistent data directory at /opt/data.
+map:
+  - type: data
+    read_only: false
+    path: /opt/data
+
+# Maintainerr only supports a few env vars:
+# TZ, UI_HOSTNAME, UI_PORT, BASE_PATH, GITHUB_TOKEN
+# (No DATABASE_PATH / LOG_LEVEL / PORT like LibraryDownloadarr)
 environment:
   TZ: "America/New_York"
+  # Optional: override listen port if you ever change it:
+  # UI_PORT: "6246"
 
-# We are going to build a local wrapper image from Dockerfile,
-# so REMOVE the old image line.
-# image: "ghcr.io/maintainerr/maintainerr"
+# Use the official Maintainerr image. Supervisor will pull:
+# ghcr.io/maintainerr/maintainerr:latest
+image: "ghcr.io/maintainerr/maintainerr"
 
-# We can keep this so Supervisor treats it like a generic container image.
 legacy: true
