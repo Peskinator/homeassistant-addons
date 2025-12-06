@@ -1,8 +1,8 @@
 name: "Maintainerr"
 slug: "maintainerr"
-version: "latest"
+version: "0.1.0"
 description: >
-  Maintenance tool for the Plex ecosystem.
+  Maintenance tool for the Plex ecosystem
 url: "https://github.com/Maintainerr/Maintainerr"
 
 arch:
@@ -19,24 +19,15 @@ ports_description:
 webui: "http://[HOST]:[PORT:6246]/"
 watchdog: "tcp://[HOST]:[PORT:6246]"
 
-# Persist Maintainerr's data:
-# Maintainerr writes everything to /opt/data in the container.
-# Here we tell HA to mount the add-on's persistent data directory at /opt/data.
-map:
-  - type: data
-    read_only: false
-    path: /opt/data
-
-# Maintainerr only supports a few env vars:
-# TZ, UI_HOSTNAME, UI_PORT, BASE_PATH, GITHUB_TOKEN
-# (No DATABASE_PATH / LOG_LEVEL / PORT like LibraryDownloadarr)
+# Only env Maintainerr really cares about here is TZ
 environment:
   TZ: "America/New_York"
-  # Optional: override listen port if you ever change it:
-  # UI_PORT: "6246"
 
-# Use the official Maintainerr image. Supervisor will pull:
-# ghcr.io/maintainerr/maintainerr:latest
-image: "ghcr.io/maintainerr/maintainerr"
+# We’re building a custom image from the Dockerfile in this folder.
+# The actual image name HA uses will be something like:
+# <machine-id>/amd64-addon-maintainerr:0.1.0
+# This line is optional, but harmless if you leave it like this.
+image: "local/maintainerr-addon"
 
-legacy: true
+# Important: this is NOT a “generic container” anymore
+legacy: false
