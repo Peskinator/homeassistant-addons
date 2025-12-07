@@ -7,10 +7,9 @@ PERSIST="/data"
 SRC="/opt/data"
 
 # Ensure base dirs exist
-mkdir -p "$PERSIST" "$SRC"
+mkdir -p "$PERSIST" "$PERSIST/logs" "$SRC"
 
-# Prepare persistent DB and logs
-mkdir -p "$PERSIST/logs"
+# Prepare persistent DB file
 touch "$PERSIST/maintainerr.sqlite" || true
 
 # Fix permissions so the non-root app user can write to /data
@@ -24,5 +23,9 @@ ln -snf "$PERSIST/logs" "$SRC/logs"
 
 echo "[ha-addon] Using $PERSIST for DB/logs (linked into $SRC)"
 
-# Start the upstream supervisor in the foreground (PID 1 child)
-exec /usr/bin/supervisord -n -c /etc/supervisord.conf
+# Make sure any data-dir-aware code sees /data
+export DATA_DIR="$PERSIST"
+export MAINTAINERR_DATA_DIR="$PERSIST"
+
+# Hand off to the original entrypoint from the image
+exec /opt/app/start.sh
