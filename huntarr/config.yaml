@@ -1,44 +1,38 @@
 name: "Huntarr"
 slug: "huntarr"
-version: "latest"
-logo: "logo.png"
-description: >
-  A specialized utility that automates discovering missing and upgrading your media collection! 
+version: "0.1.0"
+description: "Automatic missing content hunter for Sonarr, Radarr, Lidarr, Readarr, and Whisparr"
 url: "https://github.com/plexguide/Huntarr.io"
 
 arch:
   - amd64
-  # add more if/when the image supports them:
-  # - aarch64
-  # - armv7
-  # - armhf
-  # - i386
+  - aarch64
 
 startup: application
 boot: auto
 
-# Expose the LibraryDownloadarr web UI
 ports:
   "9705/tcp": 9705
 ports_description:
   "9705/tcp": "Huntarr web interface"
 
-# Web UI / health checks
 webui: "http://[HOST]:[PORT:9705]/"
 watchdog: "tcp://[HOST]:[PORT:9705]"
 
-# Environment values MUST be strings
+# Make Home Assistant's persistent /data for this add-on available as /config
+# inside the container (Huntarr's official data dir).
+map:
+  - type: data
+    read_only: false
+    path: /config
+
 environment:
-  PORT: "9705"
-  LOG_LEVEL: "info"
-  # Use HA's standard persistent volume for add-ons
-  DATABASE_PATH: "/data/huntarr.db"
-  TZ: "America/New_York"
+  TZ: "America/Toronto"
+  # Optional: BASE_URL if you reverse-proxy under a subpath
+  # BASE_URL: "/huntarr"
 
-# IMPORTANT: no tag here (no :latest)
-# Supervisor will automatically append :<version>, so this becomes
-# ghcr.io/kikootwo/librarydownloadarr:latest
-image: "ghcr.io/plexguide/huntarr" 
+# Use the official Huntarr image from GHCR
+image: "ghcr.io/plexguide/huntarr:latest"
 
-# Treat this as a generic container image
+# Generic container, no HA-specific labels
 legacy: true
