@@ -1,36 +1,34 @@
 name: "Cleanuparr"
 slug: "cleanuparr"
-version: "latest"
-logo: "logo.png"
-description: >
-  Automatic cleanup tool for Sonarr/Radarr/Lidarr.
+version: "0.1.0"
+description: "Cleanuparr – Media cleanup tool for the *arr ecosystem"
 url: "https://github.com/Cleanuparr/Cleanuparr"
 
 arch:
   - amd64
+  - aarch64
 
 startup: application
 boot: auto
 
-# Expose the Cleanuparr web UI
 ports:
-  "11011/tcp": 11011
+  "8788/tcp": 8788
 ports_description:
-  "11011/tcp": "Cleanuparr web interface"
+  "8788/tcp": "Cleanuparr web interface"
 
-# Web UI / health checks
-webui: "http://[HOST]:[PORT:11011]/"
-watchdog: "tcp://[HOST]:[PORT:11011]"
+webui: "http://[HOST]:[PORT:8788]/"
+watchdog: "tcp://[HOST]:[PORT:8788]"
 
-# Environment values MUST be strings
+# PERSISTENCE (critical)
+map:
+  - type: data
+    read_only: false
+    path: /config
+
 environment:
-  PORT: "11011"
-  LOG_LEVEL: "info"
-  DATABASE_PATH: "/data/cleanuparr.db"
   TZ: "America/New_York"
 
-# IMPORTANT: no tag here — Supervisor will append :<version> when appropriate
+# IMPORTANT: no ':latest' here!
 image: "ghcr.io/cleanuparr/cleanuparr"
 
-# Treat this as a generic container image
 legacy: true
