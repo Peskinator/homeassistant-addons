@@ -1,15 +1,14 @@
 name: "Maintainerr"
 slug: "maintainerr"
-version: "latest"
-
-description: >
-  Maintenance tool for the Plex ecosystem
+version: "0.1.12"
+description: "Maintenance tool for the Plex ecosystem"
 url: "https://github.com/Maintainerr/Maintainerr"
 
 arch:
   - amd64
+  - aarch64
 
-startup: application
+startup: services
 boot: auto
 
 ports:
@@ -18,23 +17,7 @@ ports_description:
   "6246/tcp": "Maintainerr web interface"
 
 webui: "http://[HOST]:[PORT:6246]/"
-watchdog: "tcp://[HOST]:[PORT:6246]"
 
-# Persist Maintainerr's data
-# /opt/data is where Maintainerr stores its config.
-# Here we tell HA: "mount the add-on's persistent /data volume at /opt/data"
-map:
-  - type: data
-    read_only: false
-    path: /opt/data
+host_network: true
 
-environment:
-  TZ: "America/New_York"
-  # Maintainerr defaults to 6246; only set this if you want to override
-  # UI_PORT: "6246"
-
-# Use the official image from GHCR
-image: "ghcr.io/maintainerr/maintainerr"
-
-# Image doesn't contain Home Assistant labels, so use legacy mode
-legacy: true
+backup: hot
