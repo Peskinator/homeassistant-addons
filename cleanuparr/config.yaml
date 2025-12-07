@@ -1,6 +1,6 @@
 name: "Cleanuparr"
 slug: "cleanuparr"
-version: "0.1.0"
+version: "latest"  # <-- IMPORTANT: must match an existing tag
 description: "Cleanuparr – Media cleanup tool for the *arr ecosystem"
 url: "https://github.com/Cleanuparr/Cleanuparr"
 
@@ -12,14 +12,15 @@ startup: application
 boot: auto
 
 ports:
-  "8788/tcp": 8788
+  "11011/tcp": 11011
 ports_description:
-  "8788/tcp": "Cleanuparr web interface"
+  "11011/tcp": "Cleanuparr web interface"
 
-webui: "http://[HOST]:[PORT:8788]/"
-watchdog: "tcp://[HOST]:[PORT:8788]"
+webui: "http://[HOST]:[PORT:11011]/"
+watchdog: "tcp://[HOST]:[PORT:11011]"
 
-# PERSISTENCE (critical)
+# Make HA's persistent /data available at /config inside the container
+# Cleanuparr stores its config/db under /config.
 map:
   - type: data
     read_only: false
@@ -27,8 +28,10 @@ map:
 
 environment:
   TZ: "America/New_York"
+  PORT: "11011"
 
-# IMPORTANT: no ':latest' here!
+# IMPORTANT: no tag here
+# Supervisor will pull ghcr.io/cleanuparr/cleanuparr:latest
 image: "ghcr.io/cleanuparr/cleanuparr"
 
 legacy: true
