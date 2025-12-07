@@ -1,12 +1,18 @@
 name: "Huntarr"
 slug: "huntarr"
-version: "0.1.0"
-description: "Automatic missing content hunter for Sonarr, Radarr, Lidarr, Readarr, and Whisparr"
+version: "latest"
+logo: "logo.png"
+description: >
+  A specialized utility that automates discovering missing and upgrading your media collection!
 url: "https://github.com/plexguide/Huntarr.io"
 
 arch:
   - amd64
-  - aarch64
+  # add more if/when the image supports them:
+  # - aarch64
+  # - armv7
+  # - armhf
+  # - i386
 
 startup: application
 boot: auto
@@ -19,20 +25,21 @@ ports_description:
 webui: "http://[HOST]:[PORT:9705]/"
 watchdog: "tcp://[HOST]:[PORT:9705]"
 
-# Make Home Assistant's persistent /data for this add-on available as /config
-# inside the container (Huntarr's official data dir).
+# Map the add-on's persistent /data directory to /config inside the container.
+# Huntarr stores all its config/db under /config in Docker.
 map:
   - type: data
     read_only: false
     path: /config
 
 environment:
-  TZ: "America/Toronto"
-  # Optional: BASE_URL if you reverse-proxy under a subpath
-  # BASE_URL: "/huntarr"
+  TZ: "America/New_York"
+  PORT: "9705"
+  LOG_LEVEL: "info"
 
-# Use the official Huntarr image from GHCR
-image: "ghcr.io/plexguide/huntarr:latest"
+# IMPORTANT: no tag here (no :latest)
+# Supervisor will automatically pull ghcr.io/plexguide/huntarr:latest
+# based on image + version.
+image: "ghcr.io/plexguide/huntarr"
 
-# Generic container, no HA-specific labels
 legacy: true
