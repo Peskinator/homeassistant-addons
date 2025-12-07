@@ -1,4 +1,4 @@
-# 📦 Home Assistant Add-ons: LibraryDownloadarr, Maintainerr, Huntarr & Cleanuparr
+# 📦 Home Assistant Add-ons
 
 This repository provides **Home Assistant add-ons** for four powerful media-management tools:
 
