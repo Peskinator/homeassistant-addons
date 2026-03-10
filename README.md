@@ -3,9 +3,6 @@
 This repository provides **Home Assistant add-ons** for four powerful media-management tools:
 
 - **LibraryDownloadarr** – Download media directly from your Plex libraries  
-- **Maintainerr** – Maintenance & cleanup utilities for the Plex / *arr ecosystem  
-- **Huntarr** – Automatically detect and track missing media across your *arr stack  
-- **Cleanuparr** – Clean and optimize metadata, missing items, and media clutter  
 
 These add-ons run inside Home Assistant using Supervisor-managed containers and support full persistence across reboots.
 
