@@ -1,6 +1,6 @@
 name: "SFTPGo"
 slug: "sftpgo"
-version: "2.7.0-1"
+version: "2.7.0-2"
 description: >
   Self-hosted SFTP server with a web admin UI, backed by persistent Home Assistant storage.
 url: "https://github.com/drakkan/sftpgo"
@@ -29,3 +29,9 @@ map:
   - type: data
     read_only: false
     path: /srv/sftpgo
+  - type: media
+    read_only: false
+    path: /media
+  - type: share
+    read_only: false
+    path: /share

@@ -3,6 +3,8 @@
 This add-on wraps the official `drakkan/sftpgo` image with a small Home Assistant specific layer:
 
 - persistent storage is mapped to `/srv/sftpgo`
+- Home Assistant `media` is mounted at `/media`
+- Home Assistant `share` is mounted at `/share`
 - the SFTPGo database is stored at `/srv/sftpgo/state/sftpgo.db`
 - generated SSH host keys are stored under `/srv/sftpgo/state`
 - uploaded files live under `/srv/sftpgo/data`
