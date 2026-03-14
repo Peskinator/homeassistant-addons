@@ -1,23 +1,23 @@
-# 📦 Home Assistant Add-ons
+# Home Assistant Add-ons
 
-This repository provides **Home Assistant add-ons** for four powerful media-management tools:
+This repository contains the Home Assistant add-ons I still maintain directly:
 
-- **LibraryDownloadarr** – Download media directly from your Plex libraries  
+- `LibraryDownloadarr`
+- `SFTPGo`
 
-These add-ons run inside Home Assistant using Supervisor-managed containers and support full persistence across reboots.
+The goal is to keep these add-ons small, practical, and easy to update.
 
----
-
-# 🛠️ Quick Install
-
-Click below to **add this repository directly to your Home Assistant Add-on Store**:
+## Install
 
 [![Open your Home Assistant instance and add this repository with one click.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https://github.com/Peskinator/homeassistant-addons)
 
-Or add manually:
+Or add it manually in Home Assistant:
 
-1. Open **Settings → Add-ons → Add-on Store**  
-2. Open the menu (⋮) → **Repositories**  
-3. Add the following URL: https://github.com/Peskinator/homeassistant-addons
+1. Open `Settings -> Add-ons -> Add-on Store`
+2. Open the menu and select `Repositories`
+3. Add `https://github.com/Peskinator/homeassistant-addons`
 
+## Notes
 
+- `Maintainerr` is no longer maintained in this repo. Use AlexBelgium's add-on instead: https://github.com/alexbelgium/hassio-addons/tree/master/maintainerr
+- `Huntarr` and `Cleanuparr` were removed from this repository.
