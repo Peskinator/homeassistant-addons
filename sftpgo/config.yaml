@@ -1,0 +1,31 @@
+name: "SFTPGo"
+slug: "sftpgo"
+version: "2.7.0-1"
+description: >
+  Self-hosted SFTP server with a web admin UI, backed by persistent Home Assistant storage.
+url: "https://github.com/drakkan/sftpgo"
+
+arch:
+  - amd64
+  - aarch64
+
+startup: services
+boot: auto
+init: false
+backup: hot
+panel_icon: mdi:folder-key-network
+
+ports:
+  "2022/tcp": 2022
+  "8080/tcp": 8080
+ports_description:
+  "2022/tcp": "SFTP server"
+  "8080/tcp": "Admin and web UI"
+
+webui: "http://[HOST]:[PORT:8080]/web/admin"
+watchdog: "tcp://[HOST]:[PORT:8080]"
+
+map:
+  - type: data
+    read_only: false
+    path: /srv/sftpgo
