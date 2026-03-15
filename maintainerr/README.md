@@ -2,6 +2,8 @@
 
 This add-on wraps the official `ghcr.io/maintainerr/maintainerr` image and keeps Maintainerr's real upstream data directory persistent.
 
+It also includes a small startup wrapper so Home Assistant's mounted data directory is writable by Maintainerr's unprivileged runtime user.
+
 ## Exposed port
 
 - `6246/tcp`: Maintainerr web UI
@@ -28,4 +30,5 @@ The add-on also mounts:
 
 To move to a newer upstream Maintainerr release:
 
-1. Update `version` in `config.yaml`
+1. Update `BUILD_UPSTREAM` in `Dockerfile`
+2. Update `version` in `config.yaml`
