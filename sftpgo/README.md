@@ -16,6 +16,7 @@ This add-on wraps the official `drakkan/sftpgo` image with a small Home Assistan
 - `8080/tcp`: admin and web UI
 - `10080/tcp`: WebDAV
 - `10443/tcp`: WebDAV over HTTPS
+- `11443/tcp`: admin and web UI over HTTPS
 
 ## Persistence
 
@@ -32,6 +33,8 @@ To use SFTPGo-managed Let's Encrypt certificates for WebDAV:
 3. In SFTPGo WebAdmin, configure ACME for your hostname and select WebDAV as a target protocol
 4. Configure WebDAV HTTPS to listen on port `10443`
 5. Forward public port `10443` to this add-on for remote HTTPS WebDAV access
+
+The same ACME-managed certificate can also be used for the SFTPGo web client and admin UI on port `11443`.
 
 ## Updating
 
