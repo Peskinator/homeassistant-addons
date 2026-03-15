@@ -1,0 +1,42 @@
+name: "Maintainerr"
+slug: "maintainerr"
+version: "3.1.0"
+description: >
+  Rule-based cleanup and collection management for Plex, Jellyfin, and Emby.
+url: "https://github.com/Maintainerr/Maintainerr"
+
+arch:
+  - amd64
+  - aarch64
+
+startup: services
+boot: auto
+backup: hot
+init: false
+panel_icon: mdi:movie-search
+
+ports:
+  "6246/tcp": 6246
+ports_description:
+  "6246/tcp": "Maintainerr web interface"
+
+webui: "http://[HOST]:[PORT:6246]/"
+watchdog: "tcp://[HOST]:[PORT:6246]"
+
+map:
+  - type: data
+    read_only: false
+    path: /opt/data
+  - type: media
+    read_only: false
+    path: /media
+  - type: share
+    read_only: false
+    path: /share
+
+environment:
+  UI_PORT: "6246"
+  TZ: "America/Toronto"
+
+image: "ghcr.io/maintainerr/maintainerr"
+legacy: true

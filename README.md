@@ -5,6 +5,7 @@ This repository contains the Home Assistant add-ons I still maintain directly:
 - `LibraryDownloadarr`
 - `SFTPGo`
 - `Agregarr`
+- `Maintainerr`
 
 The goal is to keep these add-ons small, practical, and easy to update.
 
@@ -20,5 +21,4 @@ Or add it manually in Home Assistant:
 
 ## Notes
 
-- `Maintainerr` is no longer maintained in this repo. Use AlexBelgium's add-on instead: https://github.com/alexbelgium/hassio-addons/tree/master/maintainerr
 - `Huntarr` and `Cleanuparr` were removed from this repository.
