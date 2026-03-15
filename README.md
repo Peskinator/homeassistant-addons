@@ -4,6 +4,7 @@ This repository contains the Home Assistant add-ons I still maintain directly:
 
 - `LibraryDownloadarr`
 - `SFTPGo`
+- `Agregarr`
 
 The goal is to keep these add-ons small, practical, and easy to update.
 
