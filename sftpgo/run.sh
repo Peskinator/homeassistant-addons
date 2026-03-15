@@ -17,6 +17,7 @@ export SFTPGO_DATA_PROVIDER__DRIVER="sqlite"
 export SFTPGO_DATA_PROVIDER__NAME="/srv/sftpgo/state/sftpgo.db"
 export SFTPGO_SFTPD__BINDINGS__0__PORT="2022"
 export SFTPGO_HTTPD__BINDINGS__0__PORT="8080"
+export SFTPGO_WEBDAVD__BINDINGS__0__PORT="10080"
 export SFTPGO_LOG_FILE_PATH=""
 export SFTPGO_CONFIG_DIR="/srv/sftpgo/state"
 

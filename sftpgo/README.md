@@ -13,6 +13,7 @@ This add-on wraps the official `drakkan/sftpgo` image with a small Home Assistan
 
 - `2022/tcp`: SFTP
 - `8080/tcp`: admin and web UI
+- `10080/tcp`: WebDAV
 
 ## Persistence
 
