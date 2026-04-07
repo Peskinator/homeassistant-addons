@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f2e8">
+  <title>Dog Custody Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Shared custody, less spreadsheet energy</p>
+        <h1>Dog walk fairness tracker</h1>
+        <p class="hero-copy">
+          One tap per day, a clear running balance, and enough structure to plug into reminders and Home Assistant later.
+        </p>
+      </div>
+      <div class="hero-badges">
+        <span class="badge">PWA ready</span>
+        <span class="badge">SQLite</span>
+        <span class="badge">Home Assistant app</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="summary-panel card">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Running balance</p>
+            <h2>This is the fairness view</h2>
+          </div>
+          <button class="subtle-button" id="todayButton" type="button">Jump to today</button>
+        </div>
+        <div class="totals-grid" id="totalsGrid"></div>
+        <p class="lead-copy" id="leadCopy">Loading totals...</p>
+      </section>
+
+      <section class="calendar-panel card">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Calendar</p>
+            <h2 id="monthLabel">Month</h2>
+          </div>
+        </div>
+        <div id="calendar"></div>
+      </section>
+
+      <section class="planner-panel card">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Plan ahead</p>
+            <h2>Pre-fill a week and skip reminders</h2>
+          </div>
+        </div>
+        <form id="bulkPlanForm" class="stack-form">
+          <label>
+            <span>Start date</span>
+            <input type="date" name="start_date" required>
+          </label>
+          <label>
+            <span>End date</span>
+            <input type="date" name="end_date" required>
+          </label>
+          <label>
+            <span>Walker</span>
+            <select name="participant_id" id="bulkParticipant" required></select>
+          </label>
+          <label>
+            <span>Notes</span>
+            <input type="text" name="notes" placeholder="Optional note">
+          </label>
+          <button class="primary-button" type="submit">Plan range</button>
+        </form>
+        <p class="status-line" id="bulkPlanStatus"></p>
+      </section>
+
+      <section class="import-panel card">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Backfill history</p>
+            <h2>Import from Google Sheets export</h2>
+          </div>
+        </div>
+        <p class="help-copy">
+          Export your current sheet as CSV, or paste the public Google Sheet URL directly.
+        </p>
+        <form id="importForm" class="stack-form">
+          <label>
+            <span>Public Google Sheet URL</span>
+            <input type="url" name="sheet_url" placeholder="https://docs.google.com/spreadsheets/d/...">
+          </label>
+          <button class="secondary-button" id="sheetImportButton" type="button">Import from sheet URL</button>
+          <div class="divider" aria-hidden="true"></div>
+          <label>
+            <span>CSV data</span>
+            <textarea name="csv_text" rows="8" placeholder="date,walker&#10;2026-04-01,Frank&#10;2026-04-02,Kurt"></textarea>
+          </label>
+          <button class="secondary-button" type="submit">Import rows</button>
+        </form>
+        <pre class="import-result" id="importResult"></pre>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="day-dialog" id="dayDialog">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-header">
+        <div>
+          <p class="section-kicker">Choose the walker</p>
+          <h2 id="dialogDateLabel">Date</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="Close">×</button>
+      </div>
+      <div class="dialog-actions" id="participantButtons"></div>
+      <button class="ghost-button" id="clearEntryButton" type="button">Clear this day</button>
+      <p class="status-line" id="dialogStatus"></p>
+    </form>
+  </dialog>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

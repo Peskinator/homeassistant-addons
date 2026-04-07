@@ -6,6 +6,7 @@ This repository contains the Home Assistant add-ons I still maintain directly:
 - `SFTPGo`
 - `Agregarr`
 - `Maintainerr`
+- `Dog Custody Tracker`
 
 The goal is to keep these add-ons small, practical, and easy to update.
 

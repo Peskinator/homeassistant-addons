@@ -1,0 +1,30 @@
+name: "Dog Custody Tracker"
+slug: "dog_custody_tracker"
+version: "0.1.0-1"
+description: >
+  Shared dog custody tracker with a mobile-friendly calendar UI, running totals, and Google Sheets import.
+url: "https://github.com/Peskinator/homeassistant-addons/tree/main/dog_custody_tracker"
+
+arch:
+  - amd64
+  - aarch64
+  - armv7
+  - armhf
+  - i386
+
+startup: application
+boot: auto
+init: false
+backup: hot
+panel_icon: mdi:dog-side
+
+ports:
+  "8420/tcp": 8420
+ports_description:
+  "8420/tcp": "Dog Custody Tracker web app"
+
+webui: "http://[HOST]:[PORT:8420]"
+watchdog: "http://[HOST]:[PORT:8420]/api/health"
+
+options: {}
+schema: {}

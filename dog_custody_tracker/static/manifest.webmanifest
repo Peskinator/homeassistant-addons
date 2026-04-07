@@ -1,0 +1,10 @@
+{
+  "name": "Dog Custody Tracker",
+  "short_name": "Dog Tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f2e8",
+  "theme_color": "#f7f2e8",
+  "description": "Track daily dog walks fairly between Frank and Kurt.",
+  "icons": []
+}
