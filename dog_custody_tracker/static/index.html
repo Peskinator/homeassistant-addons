@@ -103,6 +103,26 @@
         </form>
         <pre class="import-result" id="importResult"></pre>
       </section>
+
+      <section class="import-panel card">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Admin</p>
+            <h2>Replace the database</h2>
+          </div>
+        </div>
+        <p class="help-copy">
+          One-time migration path to upload an existing SQLite database into the add-on's persistent storage.
+        </p>
+        <form id="databaseUploadForm" class="stack-form">
+          <label>
+            <span>SQLite file</span>
+            <input type="file" id="databaseFile" accept=".sqlite,.sqlite3,.db" required>
+          </label>
+          <button class="secondary-button" type="submit">Upload database</button>
+        </form>
+        <pre class="import-result" id="databaseUploadResult"></pre>
+      </section>
     </main>
   </div>
 

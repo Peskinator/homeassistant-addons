@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import mimetypes
 import os
@@ -19,6 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 DATA_DIR = Path(os.environ.get("DOG_WALK_DATA_DIR", str(BASE_DIR / "data")))
 DB_PATH = DATA_DIR / "dog_walks.sqlite3"
+UPLOAD_DB_PATH = DATA_DIR / "dog_walks.upload.sqlite3"
 DEFAULT_PORT = 8420
 DATE_FORMATS = (
     "%Y-%m-%d",
@@ -397,6 +399,22 @@ class DogWalkStore:
         result["source_url"] = export_url
         return result
 
+    def replace_database(self, content_b64: str) -> dict[str, Any]:
+        raw = base64.b64decode(content_b64)
+        UPLOAD_DB_PATH.write_bytes(raw)
+
+        with closing(sqlite3.connect(UPLOAD_DB_PATH)) as connection:
+            connection.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'walk_entries'")
+
+        if DB_PATH.exists():
+            DB_PATH.unlink()
+        UPLOAD_DB_PATH.replace(DB_PATH)
+        self._initialize()
+
+        with closing(self.connect()) as connection:
+            total_rows = connection.execute("SELECT COUNT(*) FROM walk_entries").fetchone()[0]
+        return {"ok": True, "rows": total_rows}
+
 
 STORE = DogWalkStore(DB_PATH)
 
@@ -465,6 +483,10 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                     self,
                     STORE.import_google_sheet(payload["sheet_url"], gid=payload.get("gid", "0")),
                 )
+                return
+
+            if path == "/api/admin/replace-db":
+                json_response(self, STORE.replace_database(payload["content_b64"]))
                 return
         except KeyError as exc:
             json_response(self, {"ok": False, "error": f"Missing field: {exc.args[0]}"}, status=400)

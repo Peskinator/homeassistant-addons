@@ -15,6 +15,7 @@ Self-hosted shared dog custody tracker for Home Assistant.
 
 - This repository stores the code only, not personal walk history.
 - After installing the add-on, import your existing history from the app UI using the public Google Sheet URL.
+- If you already have a trusted SQLite database from local testing, you can upload it once from the app UI.
 - The app listens on port `8420`.
 
 ## Suggested workflow

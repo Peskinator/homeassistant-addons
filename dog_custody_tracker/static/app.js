@@ -17,6 +17,7 @@ const dayDialog = document.getElementById("dayDialog");
 const dialogDateLabel = document.getElementById("dialogDateLabel");
 const dialogStatus = document.getElementById("dialogStatus");
 const importResult = document.getElementById("importResult");
+const databaseUploadResult = document.getElementById("databaseUploadResult");
 const bulkPlanStatus = document.getElementById("bulkPlanStatus");
 const bulkParticipant = document.getElementById("bulkParticipant");
 
@@ -31,6 +32,7 @@ document.getElementById("clearEntryButton").addEventListener("click", clearSelec
 document.getElementById("bulkPlanForm").addEventListener("submit", submitBulkPlan);
 document.getElementById("importForm").addEventListener("submit", submitImport);
 document.getElementById("sheetImportButton").addEventListener("click", submitSheetImport);
+document.getElementById("databaseUploadForm").addEventListener("submit", submitDatabaseUpload);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js"));
@@ -281,6 +283,36 @@ async function submitSheetImport() {
   const result = await response.json();
   importResult.textContent = JSON.stringify(result, null, 2);
   if (result.ok) {
+    await loadMonth(state.currentMonth);
+  }
+}
+
+async function submitDatabaseUpload(event) {
+  event.preventDefault();
+  databaseUploadResult.textContent = "Uploading database...";
+  const fileInput = document.getElementById("databaseFile");
+  const file = fileInput.files?.[0];
+  if (!file) {
+    databaseUploadResult.textContent = "Choose a SQLite file first.";
+    return;
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 1) {
+    binary += String.fromCharCode(bytes[index]);
+  }
+
+  const response = await fetch("/api/admin/replace-db", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content_b64: btoa(binary) }),
+  });
+  const result = await response.json();
+  databaseUploadResult.textContent = JSON.stringify(result, null, 2);
+  if (result.ok) {
+    fileInput.value = "";
     await loadMonth(state.currentMonth);
   }
 }
