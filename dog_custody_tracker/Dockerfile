@@ -18,7 +18,7 @@ ENV DOG_WALK_DATA_DIR=/data
 
 EXPOSE 8420
 
-CMD ["python", "app.py"]
+CMD ["python3", "app.py"]
 
 LABEL \
     io.hass.name="${BUILD_NAME}" \
