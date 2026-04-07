@@ -1,6 +1,6 @@
 build_from:
-  aarch64: python:3.12-slim
-  amd64: python:3.12-slim
-  armv7: python:3.12-slim
-  armhf: python:3.12-slim
-  i386: python:3.12-slim
+  aarch64: ghcr.io/home-assistant/aarch64-base:latest
+  amd64: ghcr.io/home-assistant/amd64-base:latest
+  armv7: ghcr.io/home-assistant/armv7-base:latest
+  armhf: ghcr.io/home-assistant/armhf-base:latest
+  i386: ghcr.io/home-assistant/i386-base:latest

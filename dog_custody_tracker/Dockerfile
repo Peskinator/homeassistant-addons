@@ -1,4 +1,4 @@
-ARG BUILD_FROM=python:3.12-slim
+ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
 ARG BUILD_ARCH
@@ -11,6 +11,8 @@ ARG BUILD_VERSION
 
 WORKDIR /app
 COPY . /app
+
+RUN apk add --no-cache python3 py3-pip
 
 ENV DOG_WALK_HOST=0.0.0.0
 ENV DOG_WALK_PORT=8420
