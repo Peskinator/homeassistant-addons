@@ -4,6 +4,7 @@ import json
 import mimetypes
 import os
 import sqlite3
+import tempfile
 from contextlib import closing
 from datetime import date, datetime, timedelta
 from http import HTTPStatus
@@ -182,6 +183,31 @@ class DogWalkStore:
                 )
 
             connection.commit()
+
+    def replace_database_bytes(self, content: bytes) -> dict[str, Any]:
+        if not content:
+            raise ValueError("Uploaded database file is empty.")
+
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        fd, temp_name = tempfile.mkstemp(prefix="dog-walks-", suffix=".sqlite3", dir=str(self.db_path.parent))
+        os.close(fd)
+        temp_path = Path(temp_name)
+
+        try:
+            temp_path.write_bytes(content)
+            with closing(sqlite3.connect(temp_path)) as connection:
+                cursor = connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'walk_entries'"
+                )
+                if cursor.fetchone() is None:
+                    raise ValueError("Uploaded file is not a valid dog tracker database.")
+                row_count = int(connection.execute("SELECT COUNT(*) FROM walk_entries").fetchone()[0])
+            os.replace(temp_path, self.db_path)
+            self._initialize()
+            return {"ok": True, "rows": row_count}
+        finally:
+            if temp_path.exists():
+                temp_path.unlink(missing_ok=True)
 
     def participants(self) -> list[dict[str, Any]]:
         with closing(self.connect()) as connection:
@@ -445,6 +471,12 @@ class DogWalkHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
         try:
+            if path == "/api/admin/upload-sqlite":
+                content_length = int(self.headers.get("Content-Length", "0"))
+                body = self.rfile.read(content_length) if content_length else b""
+                json_response(self, STORE.replace_database_bytes(body))
+                return
+
             payload = read_json_body(self)
             if path == "/api/entries":
                 walk_date = payload["walk_date"]
