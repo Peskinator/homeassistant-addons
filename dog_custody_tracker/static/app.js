@@ -3,36 +3,36 @@ const state = {
   today: null,
   participants: [],
   entries: [],
+  entriesByDate: new Map(),
   totals: {},
-  activeDate: null,
   calendar: null,
   suppressCalendarFetch: false,
+  selectedDates: [],
+  activeTab: "calendar",
 };
 
-const monthLabel = document.getElementById("monthLabel");
-const totalsGrid = document.getElementById("totalsGrid");
-const leadCopy = document.getElementById("leadCopy");
 const participantButtons = document.getElementById("participantButtons");
 const dayDialog = document.getElementById("dayDialog");
 const dialogDateLabel = document.getElementById("dialogDateLabel");
+const dialogModeLabel = document.getElementById("dialogModeLabel");
 const dialogStatus = document.getElementById("dialogStatus");
-const importResult = document.getElementById("importResult");
-const databaseUploadResult = document.getElementById("databaseUploadResult");
-const bulkPlanStatus = document.getElementById("bulkPlanStatus");
-const bulkParticipant = document.getElementById("bulkParticipant");
+const selectionSummary = document.getElementById("selectionSummary");
+const clearSelectionButton = document.getElementById("clearSelectionButton");
+const clearEntryButton = document.getElementById("clearEntryButton");
+const menuButton = document.getElementById("menuButton");
+const appDrawer = document.getElementById("appDrawer");
+const balanceHero = document.getElementById("balanceHero");
+const balanceDelta = document.getElementById("balanceDelta");
+const balanceCopy = document.getElementById("balanceCopy");
+const leftParticipant = document.getElementById("leftParticipant");
+const rightParticipant = document.getElementById("rightParticipant");
 
-document.getElementById("todayButton").addEventListener("click", () => {
-  const monthKey = todayMonthKey();
-  state.currentMonth = monthKey;
-  state.suppressCalendarFetch = true;
-  state.calendar.gotoDate(`${monthKey}-01`);
-  loadMonth(monthKey);
+menuButton.addEventListener("click", toggleDrawer);
+document.querySelectorAll(".drawer-link").forEach((button) => {
+  button.addEventListener("click", () => activateTab(button.dataset.tab));
 });
-document.getElementById("clearEntryButton").addEventListener("click", clearSelectedDay);
-document.getElementById("bulkPlanForm").addEventListener("submit", submitBulkPlan);
-document.getElementById("importForm").addEventListener("submit", submitImport);
-document.getElementById("sheetImportButton").addEventListener("click", submitSheetImport);
-document.getElementById("databaseUploadForm").addEventListener("submit", submitDatabaseUpload);
+clearEntryButton.addEventListener("click", clearSelectedDay);
+clearSelectionButton.addEventListener("click", clearCalendarSelection);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js"));
@@ -45,9 +45,15 @@ function initializeCalendar() {
   const calendarEl = document.getElementById("calendar");
   state.calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: "dayGridMonth",
+    initialDate: `${state.currentMonth}-01`,
     firstDay: 1,
     height: "auto",
-    initialDate: `${state.currentMonth}-01`,
+    fixedWeekCount: false,
+    selectable: true,
+    selectMirror: true,
+    unselectAuto: false,
+    selectLongPressDelay: 180,
+    longPressDelay: 180,
     headerToolbar: {
       left: "prev,next today",
       center: "title",
@@ -56,14 +62,32 @@ function initializeCalendar() {
     buttonText: {
       today: "Today",
     },
-    dateClick: (info) => openDayDialog(info.dateStr),
+    dayCellClassNames: (arg) => dayCellClasses(arg.date),
+    dateClick: (info) => {
+      clearCalendarSelection();
+      setSelectedDates([info.dateStr]);
+      openDayDialog([info.dateStr]);
+    },
     eventClick: (info) => {
-      openDayDialog(info.event.startStr.slice(0, 10));
+      info.jsEvent.preventDefault();
+      clearCalendarSelection();
+      setSelectedDates([info.event.startStr]);
+      openDayDialog([info.event.startStr]);
+    },
+    select: (info) => {
+      const dates = datesFromExclusiveRange(info.startStr, info.endStr);
+      setSelectedDates(dates);
+      openDayDialog(dates);
+    },
+    unselect: () => {
+      if (!state.selectedDates.length) {
+        renderSelectionSummary();
+      }
     },
     datesSet: (info) => {
-      const currentStart = info.view.currentStart;
-      const monthKey = `${currentStart.getFullYear()}-${String(currentStart.getMonth() + 1).padStart(2, "0")}`;
-      renderMonthLabel(monthKey);
+      const marker = new Date(info.start);
+      marker.setDate(marker.getDate() + 15);
+      const monthKey = `${marker.getFullYear()}-${String(marker.getMonth() + 1).padStart(2, "0")}`;
       if (state.suppressCalendarFetch) {
         state.suppressCalendarFetch = false;
         return;
@@ -74,14 +98,25 @@ function initializeCalendar() {
       }
     },
     eventContent: (arg) => {
+      const participant = participantById(arg.event.extendedProps.participantId);
       const wrapper = document.createElement("div");
       wrapper.className = "fc-event-card";
-      const title = document.createElement("strong");
-      title.textContent = arg.event.title;
-      const meta = document.createElement("span");
-      meta.textContent = arg.event.extendedProps.sourceLabel;
-      wrapper.appendChild(title);
-      wrapper.appendChild(meta);
+      wrapper.style.setProperty("--event-color", participant.color);
+
+      const avatar = document.createElement("img");
+      avatar.className = "event-avatar";
+      avatar.src = participant.photo;
+      avatar.alt = participant.display_name;
+
+      wrapper.appendChild(avatar);
+
+      if (arg.event.extendedProps.sourceLabel === "planned") {
+        const meta = document.createElement("span");
+        meta.className = "event-source";
+        meta.textContent = "planned";
+        wrapper.appendChild(meta);
+      }
+
       return { domNodes: [wrapper] };
     },
   });
@@ -95,76 +130,71 @@ async function loadMonth(monthKey = state.currentMonth) {
   state.today = payload.today;
   state.participants = payload.participants;
   state.entries = payload.entries;
+  state.entriesByDate = new Map(payload.entries.map((entry) => [entry.walk_date, entry]));
   state.totals = payload.totals;
   render(payload);
 }
 
 function render(payload) {
-  renderMonthLabel(payload.month);
-  renderTotals(payload);
-  renderBulkParticipantOptions();
+  renderBalance(payload);
   renderParticipantDialogButtons();
   renderCalendarEvents(payload.entries);
+  renderSelectionSummary();
 }
 
-function renderMonthLabel(monthKey) {
-  const [year, month] = monthKey.split("-").map(Number);
-  const monthDate = new Date(year, month - 1, 1);
-  monthLabel.textContent = monthDate.toLocaleDateString(undefined, {
-    month: "long",
-    year: "numeric",
+function renderBalance(payload) {
+  const ordered = [...state.participants].sort((left, right) => {
+    return (payload.totals[right.id] || 0) - (payload.totals[left.id] || 0);
   });
-}
+  const leader = ordered[0];
+  const trailing = ordered[1];
+  const leadDelta = payload.lead_delta || 0;
 
-function renderTotals(payload) {
-  totalsGrid.innerHTML = "";
-  state.participants.forEach((participant) => {
-    const total = payload.totals[participant.id] || 0;
-    const card = document.createElement("article");
-    card.className = "total-card";
-    card.style.background = `linear-gradient(160deg, ${participant.color} 0%, ${participant.accent} 100%)`;
-    card.innerHTML = `
-      <div>
-        <p>${participant.display_name}</p>
-        <strong>${total}</strong>
-      </div>
-      <span>Total dog walks logged</span>
-    `;
-    totalsGrid.appendChild(card);
-  });
+  leftParticipant.innerHTML = buildBalanceParticipantCard(leader, true);
+  rightParticipant.innerHTML = buildBalanceParticipantCard(trailing, false);
 
-  if (!payload.leader_id || payload.lead_delta === 0) {
-    leadCopy.textContent = "You are currently tied. The spreadsheet can rest.";
+  balanceHero.style.background = `linear-gradient(135deg, ${leader.color}22 0%, ${trailing.color}22 100%)`;
+
+  if (!payload.leader_id || leadDelta === 0) {
+    balanceDelta.textContent = "Tied";
+    balanceCopy.textContent = "Both of you are perfectly even right now.";
     return;
   }
 
-  const leader = participantById(payload.leader_id);
-  leadCopy.textContent = `${leader.display_name} is ahead by ${payload.lead_delta} walk${payload.lead_delta === 1 ? "" : "s"}.`;
+  balanceDelta.textContent = `${leadDelta}`;
+  balanceCopy.textContent = `${leader.display_name} is ahead right now.`;
 }
 
-function renderBulkParticipantOptions() {
-  if (bulkParticipant.options.length) {
-    return;
-  }
-  state.participants.forEach((participant) => {
-    const option = document.createElement("option");
-    option.value = participant.id;
-    option.textContent = participant.display_name;
-    bulkParticipant.appendChild(option);
-  });
+function buildBalanceParticipantCard(participant, isLeader) {
+  return `
+    <div class="balance-avatar-wrap ${isLeader ? "is-leading" : ""}" style="--participant-color:${participant.color}; --participant-accent:${participant.accent};">
+      ${isLeader ? '<span class="leader-crown" aria-hidden="true">👑</span>' : ""}
+      <img class="balance-avatar" src="${participant.photo}" alt="${participant.display_name}">
+    </div>
+    <span class="balance-name">${participant.display_name}</span>
+  `;
 }
 
 function renderParticipantDialogButtons() {
   participantButtons.innerHTML = "";
   state.participants.forEach((participant) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "participant-button";
-    button.style.background = `linear-gradient(135deg, ${participant.color} 0%, ${participant.accent} 100%)`;
-    button.innerHTML = `<span>${participant.display_name}</span><span>${participant.short_name}</span>`;
-    button.addEventListener("click", () => saveDayAssignment(participant.id));
+    const button = buildParticipantButton(participant, async () => {
+      await saveAssignment(participant.id);
+    });
     participantButtons.appendChild(button);
   });
+}
+
+function buildParticipantButton(participant, onClick, avatarOnly = false) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "participant-button";
+  button.style.background = `linear-gradient(135deg, ${participant.color} 0%, ${participant.accent} 100%)`;
+  button.innerHTML = avatarOnly
+    ? `<img class="participant-button-avatar" src="${participant.photo}" alt="${participant.display_name}"><span>${participant.display_name}</span>`
+    : `<img class="participant-button-avatar" src="${participant.photo}" alt="${participant.display_name}"><span>${participant.display_name}</span><span>${participant.short_name}</span>`;
+  button.addEventListener("click", onClick);
+  return button;
 }
 
 function renderCalendarEvents(entries) {
@@ -175,9 +205,10 @@ function renderCalendarEvents(entries) {
       title: participant.display_name,
       start: entry.walk_date,
       allDay: true,
-      backgroundColor: participant.color,
-      borderColor: participant.color,
+      backgroundColor: "transparent",
+      borderColor: "transparent",
       textColor: "#ffffff",
+      participantId: participant.id,
       sourceLabel: entry.source === "planned" ? "planned" : entry.source,
     };
   });
@@ -186,134 +217,133 @@ function renderCalendarEvents(entries) {
   events.forEach((event) => state.calendar.addEvent(event));
 }
 
-function openDayDialog(isoDate) {
-  state.activeDate = isoDate;
-  dialogDateLabel.textContent = new Date(`${isoDate}T12:00:00`).toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+function setSelectedDates(dates) {
+  state.selectedDates = [...new Set(dates)].sort();
+  clearSelectionButton.classList.toggle("is-hidden", state.selectedDates.length === 0);
+  refreshSelectedCells();
+  renderSelectionSummary();
+}
+
+function clearCalendarSelection() {
+  state.selectedDates = [];
+  clearSelectionButton.classList.add("is-hidden");
+  state.calendar.unselect();
+  refreshSelectedCells();
+  renderSelectionSummary();
+}
+
+function renderSelectionSummary() {
+  const count = state.selectedDates.length;
+
+  if (count === 0) {
+    selectionSummary.textContent = "Tap once for a single day or drag across days to bulk assign.";
+    return;
+  }
+
+  if (count === 1) {
+    selectionSummary.textContent = `1 date selected: ${formatLongDate(state.selectedDates[0])}`;
+    return;
+  }
+
+  selectionSummary.textContent = `${count} dates selected from ${formatShortDate(state.selectedDates[0])} to ${formatShortDate(state.selectedDates[count - 1])}.`;
+}
+
+function openDayDialog(dates) {
+  const uniqueDates = [...new Set(dates)].sort();
   dialogStatus.textContent = "";
+
+  if (uniqueDates.length === 1) {
+    dialogModeLabel.textContent = "Choose the walker";
+    dialogDateLabel.textContent = formatLongDate(uniqueDates[0]);
+    clearEntryButton.textContent = "Clear this day";
+  } else {
+    dialogModeLabel.textContent = "Assign selected days";
+    dialogDateLabel.textContent = `${uniqueDates.length} dates selected`;
+    clearEntryButton.textContent = `Clear ${uniqueDates.length} days`;
+  }
+
+  dayDialog.dataset.selectedDates = JSON.stringify(uniqueDates);
   dayDialog.showModal();
 }
 
-async function saveDayAssignment(participantId) {
+async function saveAssignment(participantId) {
+  const selectedDates = JSON.parse(dayDialog.dataset.selectedDates || "[]");
   dialogStatus.textContent = "Saving...";
-  const response = await fetch("/api/entries", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      walk_date: state.activeDate,
-      participant_id: participantId,
-      source: state.activeDate > state.today ? "planned" : "manual",
-    }),
-  });
+
+  let response;
+  if (selectedDates.length > 1) {
+    response = await fetch("/api/entries/assign-dates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dates: selectedDates,
+        participant_id: participantId,
+      }),
+    });
+  } else {
+    response = await fetch("/api/entries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        walk_date: selectedDates[0],
+        participant_id: participantId,
+        source: selectedDates[0] > state.today ? "planned" : "manual",
+      }),
+    });
+  }
+
   const payload = await response.json();
   if (!payload.ok) {
-    dialogStatus.textContent = payload.error || "Could not save this day.";
+    dialogStatus.textContent = payload.error || "Could not save this selection.";
     return;
   }
+
   dayDialog.close();
   await loadMonth(state.currentMonth);
 }
 
 async function clearSelectedDay() {
-  if (!state.activeDate) {
+  const selectedDates = JSON.parse(dayDialog.dataset.selectedDates || "[]");
+  if (!selectedDates.length) {
+    dialogStatus.textContent = "No selected days to clear.";
     return;
   }
-  dialogStatus.textContent = "Clearing...";
-  const response = await fetch(`/api/entries/${state.activeDate}`, { method: "DELETE" });
-  const payload = await response.json();
-  if (!payload.ok) {
-    dialogStatus.textContent = payload.error || "Could not clear this day.";
+
+  dialogStatus.textContent = selectedDates.length === 1 ? "Clearing..." : `Clearing ${selectedDates.length} days...`;
+  const results = await Promise.all(
+    selectedDates.map(async (walkDate) => {
+      const response = await fetch(`/api/entries/${walkDate}`, { method: "DELETE" });
+      return response.json();
+    }),
+  );
+  const failed = results.find((payload) => !payload.ok);
+  if (failed) {
+    dialogStatus.textContent = failed.error || "Could not clear the selected days.";
     return;
   }
+
   dayDialog.close();
+  clearCalendarSelection();
   await loadMonth(state.currentMonth);
 }
 
-async function submitBulkPlan(event) {
-  event.preventDefault();
-  bulkPlanStatus.textContent = "Saving range...";
-  const formData = new FormData(event.currentTarget);
-  const payload = Object.fromEntries(formData.entries());
-  const response = await fetch("/api/entries/bulk-plan", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const result = await response.json();
-  bulkPlanStatus.textContent = result.ok
-    ? `Planned ${result.planned_days} day${result.planned_days === 1 ? "" : "s"}.`
-    : result.error || "Could not plan this range.";
-  if (result.ok) {
-    event.currentTarget.reset();
-    await loadMonth(state.currentMonth);
-  }
+function toggleDrawer() {
+  const nextState = appDrawer.classList.toggle("is-hidden");
+  menuButton.setAttribute("aria-expanded", String(!nextState));
 }
 
-async function submitImport(event) {
-  event.preventDefault();
-  importResult.textContent = "Importing...";
-  const formData = new FormData(event.currentTarget);
-  const csvText = formData.get("csv_text");
-  const response = await fetch("/api/import/csv", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ csv_text: csvText }),
+function activateTab(tabId) {
+  state.activeTab = tabId;
+  document.querySelectorAll(".drawer-link").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.tab === tabId);
   });
-  const result = await response.json();
-  importResult.textContent = JSON.stringify(result, null, 2);
-  if (result.ok) {
-    await loadMonth(state.currentMonth);
-  }
-}
-
-async function submitSheetImport() {
-  importResult.textContent = "Importing from Google Sheets...";
-  const form = document.getElementById("importForm");
-  const formData = new FormData(form);
-  const sheetUrl = formData.get("sheet_url");
-  const response = await fetch("/api/import/google-sheet", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sheet_url: sheetUrl }),
+  document.querySelectorAll("[data-tab-panel]").forEach((panel) => {
+    panel.classList.toggle("is-hidden", panel.dataset.tabPanel !== tabId);
   });
-  const result = await response.json();
-  importResult.textContent = JSON.stringify(result, null, 2);
-  if (result.ok) {
-    await loadMonth(state.currentMonth);
-  }
-}
-
-async function submitDatabaseUpload(event) {
-  event.preventDefault();
-  databaseUploadResult.textContent = "Uploading database...";
-  const fileInput = document.getElementById("databaseFile");
-  const file = fileInput.files?.[0];
-  if (!file) {
-    databaseUploadResult.textContent = "Choose a SQLite file first.";
-    return;
-  }
-
-  const arrayBuffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  let binary = "";
-  for (let index = 0; index < bytes.length; index += 1) {
-    binary += String.fromCharCode(bytes[index]);
-  }
-
-  const response = await fetch("/api/admin/replace-db", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content_b64: btoa(binary) }),
-  });
-  const result = await response.json();
-  databaseUploadResult.textContent = JSON.stringify(result, null, 2);
-  if (result.ok) {
-    fileInput.value = "";
-    await loadMonth(state.currentMonth);
+  appDrawer.classList.add("is-hidden");
+  menuButton.setAttribute("aria-expanded", "false");
+  if (tabId === "calendar") {
+    state.calendar.updateSize();
   }
 }
 
@@ -321,7 +351,57 @@ function participantById(participantId) {
   return state.participants.find((participant) => participant.id === participantId);
 }
 
+function refreshSelectedCells() {
+  document.querySelectorAll(".fc-daygrid-day").forEach((cell) => {
+    const dateValue = cell.getAttribute("data-date");
+    cell.classList.toggle("manual-selected", state.selectedDates.includes(dateValue));
+  });
+}
+
+function dayCellClasses(dateValue) {
+  const isoDate = toIsoDate(dateValue);
+  const entry = state.entriesByDate.get(isoDate);
+  if (!entry) {
+    return [];
+  }
+  return ["has-assignment", `has-assignment-${entry.participant_id}`];
+}
+
+function datesFromExclusiveRange(startStr, endStr) {
+  const dates = [];
+  const cursor = new Date(`${startStr}T12:00:00`);
+  const exclusiveEnd = new Date(`${endStr}T12:00:00`);
+  while (cursor < exclusiveEnd) {
+    dates.push(toIsoDate(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dates;
+}
+
+function formatLongDate(isoDate) {
+  return new Date(`${isoDate}T12:00:00`).toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatShortDate(isoDate) {
+  return new Date(`${isoDate}T12:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function todayMonthKey() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function toIsoDate(value) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }

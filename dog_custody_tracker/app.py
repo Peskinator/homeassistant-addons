@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-import base64
 import json
 import mimetypes
 import os
-import re
+import shutil
 import sqlite3
 from contextlib import closing
 from datetime import date, datetime, timedelta
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import re
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 DATA_DIR = Path(os.environ.get("DOG_WALK_DATA_DIR", str(BASE_DIR / "data")))
 DB_PATH = DATA_DIR / "dog_walks.sqlite3"
-UPLOAD_DB_PATH = DATA_DIR / "dog_walks.upload.sqlite3"
+SEED_DB_PATH = BASE_DIR / "data" / "dog_walks.sqlite3"
 DEFAULT_PORT = 8420
 DATE_FORMATS = (
     "%Y-%m-%d",
@@ -36,17 +36,17 @@ PARTICIPANTS = (
         "id": "frank",
         "display_name": "Frank",
         "short_name": "F",
-        "color": "#0b6e4f",
-        "accent": "#74c69d",
-        "photo": "Frank",
+        "color": "#557fa7",
+        "accent": "#a7bfd6",
+        "photo": "/frank.jpg",
     },
     {
         "id": "kurt",
         "display_name": "Kurt",
         "short_name": "K",
-        "color": "#ad2831",
-        "accent": "#f08080",
-        "photo": "Kurt",
+        "color": "#74634d",
+        "accent": "#c5b49b",
+        "photo": "/kurt.jpg",
     },
 )
 
@@ -123,6 +123,8 @@ class DogWalkStore:
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        if self.db_path != SEED_DB_PATH and not self.db_path.exists() and SEED_DB_PATH.exists():
+            shutil.copy2(SEED_DB_PATH, self.db_path)
         self._initialize()
 
     def connect(self) -> sqlite3.Connection:
@@ -296,6 +298,20 @@ class DogWalkStore:
             count += 1
         return {"ok": True, "planned_days": count, "participant_id": participant_id}
 
+    def assign_dates(
+        self,
+        dates: list[str],
+        participant_id: str,
+        notes: str | None = None,
+    ) -> dict[str, Any]:
+        assigned = 0
+        for walk_date in sorted(set(dates)):
+            normalized = parse_date(walk_date).isoformat()
+            source = "planned" if normalized > date.today().isoformat() else "manual"
+            self.upsert_entry(normalized, participant_id, source=source, notes=notes)
+            assigned += 1
+        return {"ok": True, "assigned_days": assigned, "participant_id": participant_id}
+
     def import_csv(self, csv_text: str, participant_aliases: dict[str, str]) -> dict[str, Any]:
         import csv
         import io
@@ -399,22 +415,6 @@ class DogWalkStore:
         result["source_url"] = export_url
         return result
 
-    def replace_database(self, content_b64: str) -> dict[str, Any]:
-        raw = base64.b64decode(content_b64)
-        UPLOAD_DB_PATH.write_bytes(raw)
-
-        with closing(sqlite3.connect(UPLOAD_DB_PATH)) as connection:
-            connection.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'walk_entries'")
-
-        if DB_PATH.exists():
-            DB_PATH.unlink()
-        UPLOAD_DB_PATH.replace(DB_PATH)
-        self._initialize()
-
-        with closing(self.connect()) as connection:
-            total_rows = connection.execute("SELECT COUNT(*) FROM walk_entries").fetchone()[0]
-        return {"ok": True, "rows": total_rows}
-
 
 STORE = DogWalkStore(DB_PATH)
 
@@ -468,6 +468,17 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                 )
                 return
 
+            if path == "/api/entries/assign-dates":
+                json_response(
+                    self,
+                    STORE.assign_dates(
+                        dates=payload["dates"],
+                        participant_id=payload["participant_id"],
+                        notes=payload.get("notes"),
+                    ),
+                )
+                return
+
             if path == "/api/import/csv":
                 aliases = {
                     "frank": "frank",
@@ -483,10 +494,6 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                     self,
                     STORE.import_google_sheet(payload["sheet_url"], gid=payload.get("gid", "0")),
                 )
-                return
-
-            if path == "/api/admin/replace-db":
-                json_response(self, STORE.replace_database(payload["content_b64"]))
                 return
         except KeyError as exc:
             json_response(self, {"ok": False, "error": f"Missing field: {exc.args[0]}"}, status=400)

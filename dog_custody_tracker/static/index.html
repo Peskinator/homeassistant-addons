@@ -4,124 +4,66 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f2e8">
-  <title>Dog Custody Tracker</title>
+  <title>Chewie Walk Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <div class="page-shell">
-    <header class="hero">
-      <div>
-        <p class="eyebrow">Shared custody, less spreadsheet energy</p>
-        <h1>Dog walk fairness tracker</h1>
-        <p class="hero-copy">
-          One tap per day, a clear running balance, and enough structure to plug into reminders and Home Assistant later.
-        </p>
+    <header class="app-header">
+      <button class="hamburger-button" id="menuButton" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="appDrawer">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="title-block">
+        <h1>Chewie Walk Tracker</h1>
+        <span class="build-tag">PROD v0.2.0</span>
       </div>
-      <div class="hero-badges">
-        <span class="badge">PWA ready</span>
-        <span class="badge">SQLite</span>
-        <span class="badge">Home Assistant app</span>
-      </div>
+      <div class="header-spacer" aria-hidden="true"></div>
     </header>
 
-    <main class="layout">
-      <section class="summary-panel card">
-        <div class="panel-header">
-          <div>
-            <p class="section-kicker">Running balance</p>
-            <h2>This is the fairness view</h2>
+    <aside class="app-drawer is-hidden" id="appDrawer">
+      <button class="drawer-link is-active" data-tab="calendar" type="button">Calendar</button>
+      <button class="drawer-link" data-tab="stats" type="button">Stats</button>
+      <button class="drawer-link" data-tab="profile" type="button">Profile</button>
+    </aside>
+
+    <main class="tab-shell">
+      <section class="tab-panel" data-tab-panel="calendar">
+        <section class="balance-hero card" id="balanceHero">
+          <div class="balance-person" id="leftParticipant"></div>
+          <div class="balance-score">
+            <p class="balance-kicker">Current balance</p>
+            <strong id="balanceDelta">+0</strong>
+            <p class="balance-copy" id="balanceCopy">Loading balance...</p>
           </div>
-          <button class="subtle-button" id="todayButton" type="button">Jump to today</button>
-        </div>
-        <div class="totals-grid" id="totalsGrid"></div>
-        <p class="lead-copy" id="leadCopy">Loading totals...</p>
+          <div class="balance-person" id="rightParticipant"></div>
+        </section>
+
+        <section class="calendar-panel card">
+          <div class="calendar-panel-actions">
+            <div class="selection-summary" id="selectionSummary">No dates selected yet. Tap once for a single day or drag across days to bulk assign.</div>
+            <button class="subtle-button is-hidden" id="clearSelectionButton" type="button">Clear selection</button>
+          </div>
+          <div id="calendar"></div>
+        </section>
       </section>
 
-      <section class="calendar-panel card">
-        <div class="panel-header">
-          <div>
-            <p class="section-kicker">Calendar</p>
-            <h2 id="monthLabel">Month</h2>
-          </div>
-        </div>
-        <div id="calendar"></div>
+      <section class="tab-panel is-hidden" data-tab-panel="stats">
+        <section class="card placeholder-card">
+          <p class="section-kicker">Stats</p>
+          <h2>WIP</h2>
+        </section>
       </section>
 
-      <section class="planner-panel card">
-        <div class="panel-header">
-          <div>
-            <p class="section-kicker">Plan ahead</p>
-            <h2>Pre-fill a week and skip reminders</h2>
-          </div>
-        </div>
-        <form id="bulkPlanForm" class="stack-form">
-          <label>
-            <span>Start date</span>
-            <input type="date" name="start_date" required>
-          </label>
-          <label>
-            <span>End date</span>
-            <input type="date" name="end_date" required>
-          </label>
-          <label>
-            <span>Walker</span>
-            <select name="participant_id" id="bulkParticipant" required></select>
-          </label>
-          <label>
-            <span>Notes</span>
-            <input type="text" name="notes" placeholder="Optional note">
-          </label>
-          <button class="primary-button" type="submit">Plan range</button>
-        </form>
-        <p class="status-line" id="bulkPlanStatus"></p>
-      </section>
-
-      <section class="import-panel card">
-        <div class="panel-header">
-          <div>
-            <p class="section-kicker">Backfill history</p>
-            <h2>Import from Google Sheets export</h2>
-          </div>
-        </div>
-        <p class="help-copy">
-          Export your current sheet as CSV, or paste the public Google Sheet URL directly.
-        </p>
-        <form id="importForm" class="stack-form">
-          <label>
-            <span>Public Google Sheet URL</span>
-            <input type="url" name="sheet_url" placeholder="https://docs.google.com/spreadsheets/d/...">
-          </label>
-          <button class="secondary-button" id="sheetImportButton" type="button">Import from sheet URL</button>
-          <div class="divider" aria-hidden="true"></div>
-          <label>
-            <span>CSV data</span>
-            <textarea name="csv_text" rows="8" placeholder="date,walker&#10;2026-04-01,Frank&#10;2026-04-02,Kurt"></textarea>
-          </label>
-          <button class="secondary-button" type="submit">Import rows</button>
-        </form>
-        <pre class="import-result" id="importResult"></pre>
-      </section>
-
-      <section class="import-panel card">
-        <div class="panel-header">
-          <div>
-            <p class="section-kicker">Admin</p>
-            <h2>Replace the database</h2>
-          </div>
-        </div>
-        <p class="help-copy">
-          One-time migration path to upload an existing SQLite database into the add-on's persistent storage.
-        </p>
-        <form id="databaseUploadForm" class="stack-form">
-          <label>
-            <span>SQLite file</span>
-            <input type="file" id="databaseFile" accept=".sqlite,.sqlite3,.db" required>
-          </label>
-          <button class="secondary-button" type="submit">Upload database</button>
-        </form>
-        <pre class="import-result" id="databaseUploadResult"></pre>
+      <section class="tab-panel is-hidden" data-tab-panel="profile">
+        <section class="card placeholder-card">
+          <p class="section-kicker">Profile</p>
+          <h2>WIP</h2>
+          <p class="help-copy">Later this section will let you change the profile pictures shown throughout the calendar.</p>
+        </section>
       </section>
     </main>
   </div>
@@ -130,17 +72,16 @@
     <form method="dialog" class="dialog-card">
       <div class="dialog-header">
         <div>
-          <p class="section-kicker">Choose the walker</p>
+          <p class="section-kicker" id="dialogModeLabel">Choose the walker</p>
           <h2 id="dialogDateLabel">Date</h2>
         </div>
-        <button class="icon-button" value="cancel" aria-label="Close">×</button>
+        <button class="icon-button" value="cancel" aria-label="Close">&times;</button>
       </div>
       <div class="dialog-actions" id="participantButtons"></div>
       <button class="ghost-button" id="clearEntryButton" type="button">Clear this day</button>
       <p class="status-line" id="dialogStatus"></p>
     </form>
   </dialog>
-
   <script src="/app.js" type="module"></script>
 </body>
 </html>
