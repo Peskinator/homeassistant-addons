@@ -4,9 +4,9 @@ const APP_SHELL = [
   "/styles.css",
   "/app.js",
   "/manifest.webmanifest",
-  "/icon.svg",
-  "/icon-192.svg",
-  "/icon-512.svg",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/chewie-icon.jpg",
   "/frank.jpg",
   "/kurt.jpg",
 ];
