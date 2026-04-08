@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
-import shutil
 import sqlite3
 from contextlib import closing
 from datetime import date, datetime, timedelta
@@ -15,12 +14,13 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
 
+mimetypes.add_type("application/manifest+json", ".webmanifest")
+mimetypes.add_type("image/svg+xml", ".svg")
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 DATA_DIR = Path(os.environ.get("DOG_WALK_DATA_DIR", str(BASE_DIR / "data")))
 DB_PATH = DATA_DIR / "dog_walks.sqlite3"
-SEED_DB_PATH = BASE_DIR / "data" / "dog_walks.sqlite3"
 DEFAULT_PORT = 8420
 DATE_FORMATS = (
     "%Y-%m-%d",
@@ -123,30 +123,12 @@ class DogWalkStore:
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        if self.db_path != SEED_DB_PATH and SEED_DB_PATH.exists():
-            if not self.db_path.exists():
-                shutil.copy2(SEED_DB_PATH, self.db_path)
-            elif self._seed_target_is_empty():
-                shutil.copy2(SEED_DB_PATH, self.db_path)
         self._initialize()
 
     def connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.db_path)
         connection.row_factory = sqlite3.Row
         return connection
-
-    def _seed_target_is_empty(self) -> bool:
-        try:
-            with closing(sqlite3.connect(self.db_path)) as connection:
-                cursor = connection.execute(
-                    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'walk_entries'"
-                )
-                if cursor.fetchone() is None:
-                    return True
-                cursor = connection.execute("SELECT COUNT(*) FROM walk_entries")
-                return int(cursor.fetchone()[0]) == 0
-        except sqlite3.DatabaseError:
-            return True
 
     def _initialize(self) -> None:
         with closing(self.connect()) as connection:

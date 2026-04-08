@@ -1,10 +1,33 @@
 {
-  "name": "Dog Custody Tracker",
-  "short_name": "Dog Tracker",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#f7f2e8",
-  "theme_color": "#f7f2e8",
+  "id": "/",
+  "name": "Chewie Walk Tracker",
+  "short_name": "Chewie Walks",
   "description": "Track daily dog walks fairly between Frank and Kurt.",
-  "icons": []
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#f3efe7",
+  "theme_color": "#f7f2e8",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }

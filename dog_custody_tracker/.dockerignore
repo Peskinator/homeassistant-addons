@@ -1,2 +1,4 @@
+data
 __pycache__
+*.sqlite3
 dog_walks_source.*

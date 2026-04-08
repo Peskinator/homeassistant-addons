@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#557fa7"/>
+      <stop offset="100%" stop-color="#74634d"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbf7f1"/>
+      <stop offset="100%" stop-color="#efe5d6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <circle cx="182" cy="194" r="86" fill="#a7bfd6"/>
+  <circle cx="330" cy="194" r="86" fill="#c5b49b"/>
+  <circle cx="182" cy="194" r="72" fill="url(#card)"/>
+  <circle cx="330" cy="194" r="72" fill="url(#card)"/>
+  <path d="M256 210c-25 0-46 18-51 42-25 2-45 23-45 49 0 28 23 51 51 51h90c28 0 51-23 51-51 0-26-20-47-45-49-5-24-26-42-51-42z" fill="#1d201b" opacity="0.9"/>
+  <circle cx="214" cy="158" r="22" fill="#1d201b" opacity="0.9"/>
+  <circle cx="298" cy="158" r="22" fill="#1d201b" opacity="0.9"/>
+  <circle cx="182" cy="390" r="34" fill="#fbf7f1"/>
+  <circle cx="256" cy="390" r="34" fill="#fbf7f1"/>
+  <circle cx="330" cy="390" r="34" fill="#fbf7f1"/>
+  <text x="256" y="445" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="56" font-weight="700" fill="#fbf7f1">CW</text>
+</svg>
