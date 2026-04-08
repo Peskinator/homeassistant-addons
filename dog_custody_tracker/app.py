@@ -123,14 +123,30 @@ class DogWalkStore:
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        if self.db_path != SEED_DB_PATH and not self.db_path.exists() and SEED_DB_PATH.exists():
-            shutil.copy2(SEED_DB_PATH, self.db_path)
+        if self.db_path != SEED_DB_PATH and SEED_DB_PATH.exists():
+            if not self.db_path.exists():
+                shutil.copy2(SEED_DB_PATH, self.db_path)
+            elif self._seed_target_is_empty():
+                shutil.copy2(SEED_DB_PATH, self.db_path)
         self._initialize()
 
     def connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.db_path)
         connection.row_factory = sqlite3.Row
         return connection
+
+    def _seed_target_is_empty(self) -> bool:
+        try:
+            with closing(sqlite3.connect(self.db_path)) as connection:
+                cursor = connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'walk_entries'"
+                )
+                if cursor.fetchone() is None:
+                    return True
+                cursor = connection.execute("SELECT COUNT(*) FROM walk_entries")
+                return int(cursor.fetchone()[0]) == 0
+        except sqlite3.DatabaseError:
+            return True
 
     def _initialize(self) -> None:
         with closing(self.connect()) as connection:
