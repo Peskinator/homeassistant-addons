@@ -203,9 +203,7 @@ function buildParticipantButton(participant, onClick, avatarOnly = false) {
   button.type = "button";
   button.className = "participant-button";
   button.style.background = `linear-gradient(135deg, ${participant.color} 0%, ${participant.accent} 100%)`;
-  button.innerHTML = avatarOnly
-    ? `<img class="participant-button-avatar" src="${participant.photo}" alt="${participant.display_name}"><span>${participant.display_name}</span>`
-    : `<img class="participant-button-avatar" src="${participant.photo}" alt="${participant.display_name}"><span>${participant.display_name}</span><span>${participant.short_name}</span>`;
+  button.innerHTML = `<img class="participant-button-avatar" src="${participant.photo}" alt="${participant.display_name}"><span>${participant.display_name}</span>`;
   button.addEventListener("click", onClick);
   return button;
 }
