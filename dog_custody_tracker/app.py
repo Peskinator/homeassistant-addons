@@ -20,7 +20,8 @@ mimetypes.add_type("image/svg+xml", ".svg")
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
-DATA_DIR = Path(os.environ.get("DOG_WALK_DATA_DIR", str(BASE_DIR / "data")))
+DEFAULT_DATA_DIR = Path("/data") if BASE_DIR == Path("/app") else (BASE_DIR / "data")
+DATA_DIR = Path(os.environ.get("DOG_WALK_DATA_DIR") or str(DEFAULT_DATA_DIR))
 DB_PATH = DATA_DIR / "dog_walks.sqlite3"
 DEFAULT_PORT = 8420
 DATE_FORMATS = (
