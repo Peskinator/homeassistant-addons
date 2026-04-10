@@ -1,14 +1,15 @@
-const CACHE_NAME = "chewie-walk-tracker-v3";
+const ASSET_VERSION = "0.1.0-22";
+const CACHE_NAME = `chewie-walk-tracker-${ASSET_VERSION}`;
 const APP_SHELL = [
   "/",
-  "/styles.css",
-  "/app.js",
-  "/manifest.webmanifest",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/chewie-icon.jpg",
-  "/frank.jpg",
-  "/kurt.jpg",
+  `/styles.css?v=${ASSET_VERSION}`,
+  `/app.js?v=${ASSET_VERSION}`,
+  `/manifest.webmanifest?v=${ASSET_VERSION}`,
+  `/icon-192.png?v=${ASSET_VERSION}`,
+  `/icon-512.png?v=${ASSET_VERSION}`,
+  `/chewie-icon.jpg?v=${ASSET_VERSION}`,
+  `/frank.jpg?v=${ASSET_VERSION}`,
+  `/kurt.jpg?v=${ASSET_VERSION}`,
 ];
 
 self.addEventListener("install", (event) => {

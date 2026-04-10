@@ -35,7 +35,7 @@ clearEntryButton.addEventListener("click", clearSelectedDay);
 clearSelectionButton.addEventListener("click", clearCalendarSelection);
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js"));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`/sw.js?v=${window.__ASSET_VERSION__ || "dev"}`));
 }
 
 initializeCalendar();
