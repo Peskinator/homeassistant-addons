@@ -198,23 +198,39 @@ function buildParticipantButton(participant, onClick, avatarOnly = false) {
 }
 
 function renderCalendarEvents(entries) {
-  const events = entries.map((entry) => {
-    const participant = participantById(entry.participant_id);
-    return {
-      id: entry.walk_date,
-      title: participant.display_name,
-      start: entry.walk_date,
-      allDay: true,
-      backgroundColor: "transparent",
-      borderColor: "transparent",
-      textColor: "#ffffff",
-      participantId: participant.id,
-      sourceLabel: entry.source === "planned" ? "planned" : entry.source,
-    };
-  });
+  const events = entries
+    .filter((entry) => shouldRenderStreakAvatar(entry))
+    .map((entry) => {
+      const participant = participantById(entry.participant_id);
+      return {
+        id: entry.walk_date,
+        title: participant.display_name,
+        start: entry.walk_date,
+        allDay: true,
+        backgroundColor: "transparent",
+        borderColor: "transparent",
+        textColor: "#ffffff",
+        participantId: participant.id,
+        sourceLabel: entry.source === "planned" ? "planned" : entry.source,
+      };
+    });
 
   state.calendar.removeAllEvents();
   events.forEach((event) => state.calendar.addEvent(event));
+}
+
+function shouldRenderStreakAvatar(entry) {
+  const previousEntry = state.entriesByDate.get(shiftIsoDate(entry.walk_date, -1));
+  const nextEntry = state.entriesByDate.get(shiftIsoDate(entry.walk_date, 1));
+  const sameAsPrevious = previousEntry?.participant_id === entry.participant_id;
+  const sameAsNext = nextEntry?.participant_id === entry.participant_id;
+  return !sameAsPrevious || !sameAsNext;
+}
+
+function shiftIsoDate(isoDate, offsetDays) {
+  const value = new Date(`${isoDate}T12:00:00`);
+  value.setDate(value.getDate() + offsetDays);
+  return value.toISOString().slice(0, 10);
 }
 
 function setSelectedDates(dates) {
