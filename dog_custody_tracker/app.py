@@ -111,6 +111,9 @@ def json_response(handler: BaseHTTPRequestHandler, payload: Any, status: int = 2
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
     handler.send_header("Content-Length", str(len(body)))
+    handler.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+    handler.send_header("Pragma", "no-cache")
+    handler.send_header("Expires", "0")
     handler.end_headers()
     handler.wfile.write(body)
 
@@ -602,8 +605,12 @@ class DogWalkHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", f"{mime_type or 'application/octet-stream'}; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
-        if target.suffix in {".js", ".css", ".html", ".json", ".webmanifest"}:
-            self.send_header("Cache-Control", "no-cache")
+        if path == "/" or target.name in {"index.html", "sw.js"}:
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+        elif target.suffix in {".js", ".css", ".json", ".webmanifest", ".png", ".jpg", ".svg"}:
+            self.send_header("Cache-Control", "no-cache, must-revalidate, max-age=0")
         self.end_headers()
         self.wfile.write(body)
 
