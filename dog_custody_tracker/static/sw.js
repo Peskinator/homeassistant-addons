@@ -1,4 +1,4 @@
-const CACHE_NAME = "chewie-walk-tracker-v2";
+const CACHE_NAME = "chewie-walk-tracker-v3";
 const APP_SHELL = [
   "/",
   "/styles.css",
