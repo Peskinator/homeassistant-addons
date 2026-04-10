@@ -87,8 +87,8 @@ function initializeCalendar() {
       const marker = new Date(info.start);
       marker.setDate(marker.getDate() + 15);
       const monthKey = `${marker.getFullYear()}-${String(marker.getMonth() + 1).padStart(2, "0")}`;
-      const rangeStart = info.startStr;
-      const rangeEnd = info.endStr;
+      const rangeStart = toIsoDate(info.start);
+      const rangeEnd = toIsoDate(info.end);
       if (
         state.suppressCalendarFetch &&
         monthKey === state.currentMonth
@@ -240,6 +240,10 @@ function shiftIsoDate(isoDate, offsetDays) {
   const value = new Date(`${isoDate}T12:00:00`);
   value.setDate(value.getDate() + offsetDays);
   return value.toISOString().slice(0, 10);
+}
+
+function toIsoDate(value) {
+  return new Date(value.getTime() - value.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 
 function setSelectedDates(dates) {
