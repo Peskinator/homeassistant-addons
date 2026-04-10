@@ -264,6 +264,28 @@ class DogWalkStore:
             "lead_delta": lead_delta,
         }
 
+    def diagnostic_payload(self) -> dict[str, Any]:
+        info: dict[str, Any] = {
+            "db_path": str(self.db_path),
+            "db_exists": self.db_path.exists(),
+            "db_size": self.db_path.stat().st_size if self.db_path.exists() else 0,
+            "base_dir": str(BASE_DIR),
+            "data_dir": str(DATA_DIR),
+            "cwd": os.getcwd(),
+            "env_data_dir": os.environ.get("DOG_WALK_DATA_DIR"),
+        }
+        try:
+            with closing(self.connect()) as connection:
+                cursor = connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'walk_entries'"
+                )
+                has_entries_table = cursor.fetchone() is not None
+                info["has_walk_entries_table"] = has_entries_table
+                info["row_count"] = int(connection.execute("SELECT COUNT(*) FROM walk_entries").fetchone()[0]) if has_entries_table else 0
+        except sqlite3.DatabaseError as exc:
+            info["database_error"] = str(exc)
+        return info
+
     def upsert_entry(
         self,
         walk_date: str,
@@ -458,6 +480,10 @@ class DogWalkHandler(BaseHTTPRequestHandler):
         if path == "/api/bootstrap":
             month_key = query.get("month", [date.today().strftime("%Y-%m")])[0]
             json_response(self, STORE.get_month_payload(month_key))
+            return
+
+        if path == "/api/admin/diagnostics":
+            json_response(self, STORE.diagnostic_payload())
             return
 
         if path == "/api/reminders/pending":
