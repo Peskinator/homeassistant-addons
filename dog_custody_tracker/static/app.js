@@ -39,7 +39,6 @@ if ("serviceWorker" in navigator) {
 }
 
 initializeCalendar();
-loadMonth(state.currentMonth);
 
 function initializeCalendar() {
   const calendarEl = document.getElementById("calendar");
@@ -88,14 +87,17 @@ function initializeCalendar() {
       const marker = new Date(info.start);
       marker.setDate(marker.getDate() + 15);
       const monthKey = `${marker.getFullYear()}-${String(marker.getMonth() + 1).padStart(2, "0")}`;
-      if (state.suppressCalendarFetch) {
+      const rangeStart = info.startStr;
+      const rangeEnd = info.endStr;
+      if (
+        state.suppressCalendarFetch &&
+        monthKey === state.currentMonth
+      ) {
         state.suppressCalendarFetch = false;
         return;
       }
-      if (monthKey !== state.currentMonth) {
-        state.currentMonth = monthKey;
-        loadMonth(monthKey);
-      }
+      state.currentMonth = monthKey;
+      loadMonth(monthKey, rangeStart, rangeEnd);
     },
     eventContent: (arg) => {
       const participant = participantById(arg.event.extendedProps.participantId);
@@ -123,8 +125,15 @@ function initializeCalendar() {
   state.calendar.render();
 }
 
-async function loadMonth(monthKey = state.currentMonth) {
-  const response = await fetch(`/api/bootstrap?month=${monthKey}`);
+async function loadMonth(monthKey = state.currentMonth, rangeStart = null, rangeEnd = null) {
+  const params = new URLSearchParams({ month: monthKey });
+  if (rangeStart) {
+    params.set("range_start", rangeStart);
+  }
+  if (rangeEnd) {
+    params.set("range_end", rangeEnd);
+  }
+  const response = await fetch(`/api/bootstrap?${params.toString()}`);
   const payload = await response.json();
   state.currentMonth = payload.month;
   state.today = payload.today;

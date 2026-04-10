@@ -217,8 +217,15 @@ class DogWalkStore:
             ).fetchall()
             return [dict(row) for row in rows]
 
-    def get_month_payload(self, month_key: str) -> dict[str, Any]:
+    def get_month_payload(
+        self,
+        month_key: str,
+        range_start: str | None = None,
+        range_end: str | None = None,
+    ) -> dict[str, Any]:
         month_start, next_month = month_bounds(month_key)
+        entry_start = parse_date(range_start).isoformat() if range_start else month_start.isoformat()
+        entry_end = parse_date(range_end).isoformat() if range_end else next_month.isoformat()
         with closing(self.connect()) as connection:
             month_rows = connection.execute(
                 """
@@ -227,7 +234,7 @@ class DogWalkStore:
                 WHERE walk_date >= ? AND walk_date < ?
                 ORDER BY walk_date
                 """,
-                (month_start.isoformat(), next_month.isoformat()),
+                (entry_start, entry_end),
             ).fetchall()
             totals_rows = connection.execute(
                 """
@@ -480,7 +487,9 @@ class DogWalkHandler(BaseHTTPRequestHandler):
 
         if path == "/api/bootstrap":
             month_key = query.get("month", [date.today().strftime("%Y-%m")])[0]
-            json_response(self, STORE.get_month_payload(month_key))
+            range_start = query.get("range_start", [None])[0]
+            range_end = query.get("range_end", [None])[0]
+            json_response(self, STORE.get_month_payload(month_key, range_start=range_start, range_end=range_end))
             return
 
         if path == "/api/admin/diagnostics":
