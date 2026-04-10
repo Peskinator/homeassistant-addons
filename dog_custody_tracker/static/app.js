@@ -39,6 +39,10 @@ if ("serviceWorker" in navigator) {
 }
 
 initializeCalendar();
+loadMonth(state.currentMonth).catch((error) => {
+  console.error("Initial month load failed", error);
+  balanceCopy.textContent = "Could not load data.";
+});
 
 function initializeCalendar() {
   const calendarEl = document.getElementById("calendar");
@@ -240,10 +244,6 @@ function shiftIsoDate(isoDate, offsetDays) {
   const value = new Date(`${isoDate}T12:00:00`);
   value.setDate(value.getDate() + offsetDays);
   return value.toISOString().slice(0, 10);
-}
-
-function toIsoDate(value) {
-  return new Date(value.getTime() - value.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 
 function setSelectedDates(dates) {
