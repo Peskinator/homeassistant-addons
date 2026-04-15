@@ -40,7 +40,8 @@ if ("serviceWorker" in navigator) {
 }
 
 initializeCalendar();
-loadMonth(state.currentMonth).catch((error) => {
+const initialRange = currentCalendarRange();
+loadMonth(state.currentMonth, initialRange?.start ?? null, initialRange?.end ?? null).catch((error) => {
   console.error("Initial month load failed", error);
   balanceCopy.textContent = "Could not load data.";
 });
@@ -147,6 +148,16 @@ async function loadMonth(monthKey = state.currentMonth, rangeStart = null, range
   state.entriesByDate = new Map(payload.entries.map((entry) => [entry.walk_date, entry]));
   state.totals = payload.totals;
   render(payload);
+}
+
+function currentCalendarRange() {
+  if (!state.calendar?.view?.activeStart || !state.calendar?.view?.activeEnd) {
+    return null;
+  }
+  return {
+    start: toIsoDate(state.calendar.view.activeStart),
+    end: toIsoDate(state.calendar.view.activeEnd),
+  };
 }
 
 function render(payload) {
