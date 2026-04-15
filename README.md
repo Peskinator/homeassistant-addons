@@ -10,6 +10,8 @@ This repository contains the Home Assistant add-ons I still maintain directly:
 
 The goal is to keep these add-ons small, practical, and easy to update.
 
+`Dog Custody Tracker` now uses a GHCR prebuilt image flow so Home Assistant can pull published images instead of rebuilding it locally.
+
 ## Install
 
 [![Open your Home Assistant instance and add this repository with one click.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https://github.com/Peskinator/homeassistant-addons)
