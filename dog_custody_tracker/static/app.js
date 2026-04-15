@@ -275,7 +275,7 @@ function renderSelectionSummary() {
   const count = state.selectedDates.length;
 
   if (count === 0) {
-    selectionSummary.textContent = "Tap once for a single day or drag across days to bulk assign.";
+    selectionSummary.textContent = "Tap for one day or drag across days to assign.";
     return;
   }
 
