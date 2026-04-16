@@ -71,6 +71,13 @@ def app_version() -> str:
 
 APP_VERSION = app_version()
 APP_MODE = "PROD" if BASE_DIR == Path("/app") else "TEST"
+STATS_RANGES = {
+    "7": 7,
+    "30": 30,
+    "90": 90,
+    "365": 365,
+    "all": None,
+}
 
 
 def utcnow_iso() -> str:
@@ -375,6 +382,121 @@ class DogWalkStore:
                 break
         return items
 
+    def stats_payload(self, range_key: str = "90") -> dict[str, Any]:
+        if range_key not in STATS_RANGES:
+            raise ValueError("Unsupported stats range.")
+
+        today = date.today()
+        day_count = STATS_RANGES[range_key]
+        if day_count is None:
+            with closing(self.connect()) as connection:
+                first_row = connection.execute(
+                    "SELECT MIN(walk_date) AS first_date FROM walk_entries WHERE walk_date <= ?",
+                    (today.isoformat(),),
+                ).fetchone()
+            range_start = parse_date(first_row["first_date"]) if first_row and first_row["first_date"] else today
+        else:
+            range_start = today - timedelta(days=day_count - 1)
+
+        range_start_iso = range_start.isoformat()
+        today_iso = today.isoformat()
+
+        with closing(self.connect()) as connection:
+            before_rows = connection.execute(
+                """
+                SELECT participant_id, COUNT(*) AS total
+                FROM walk_entries
+                WHERE walk_date < ? AND walk_date <= ?
+                GROUP BY participant_id
+                """,
+                (range_start_iso, today_iso),
+            ).fetchall()
+            daily_rows = connection.execute(
+                """
+                SELECT walk_date, participant_id, COUNT(*) AS total
+                FROM walk_entries
+                WHERE walk_date >= ? AND walk_date <= ?
+                GROUP BY walk_date, participant_id
+                ORDER BY walk_date, participant_id
+                """,
+                (range_start_iso, today_iso),
+            ).fetchall()
+            monthly_rows = connection.execute(
+                """
+                SELECT substr(walk_date, 1, 7) AS month_key, participant_id, COUNT(*) AS total
+                FROM walk_entries
+                WHERE walk_date >= ? AND walk_date <= ?
+                GROUP BY month_key, participant_id
+                ORDER BY month_key, participant_id
+                """,
+                (range_start_iso, today_iso),
+            ).fetchall()
+
+        participants = self.participants()
+        participant_ids = [participant["id"] for participant in participants]
+        totals_before = {participant_id: 0 for participant_id in participant_ids}
+        for row in before_rows:
+            totals_before[row["participant_id"]] = int(row["total"])
+
+        totals_in_range = {participant_id: 0 for participant_id in participant_ids}
+        daily_lookup: dict[str, dict[str, int]] = {}
+        for row in daily_rows:
+            walk_date = row["walk_date"]
+            participant_id = row["participant_id"]
+            count = int(row["total"])
+            daily_lookup.setdefault(walk_date, {})[participant_id] = count
+            totals_in_range[participant_id] += count
+
+        labels: list[str] = []
+        balance_series: list[int] = []
+        cumulative_series = {participant_id: [] for participant_id in participant_ids}
+        running_totals = totals_before.copy()
+
+        cursor = range_start
+        while cursor <= today:
+            walk_date = cursor.isoformat()
+            labels.append(walk_date)
+            day_counts = daily_lookup.get(walk_date, {})
+            for participant_id in participant_ids:
+                running_totals[participant_id] += day_counts.get(participant_id, 0)
+                cumulative_series[participant_id].append(running_totals[participant_id])
+            frank_total = running_totals.get("frank", 0)
+            kurt_total = running_totals.get("kurt", 0)
+            balance_series.append(frank_total - kurt_total)
+            cursor += timedelta(days=1)
+
+        monthly_labels = sorted({row["month_key"] for row in monthly_rows})
+        monthly_totals = {
+            participant_id: {month_key: 0 for month_key in monthly_labels}
+            for participant_id in participant_ids
+        }
+        for row in monthly_rows:
+            monthly_totals[row["participant_id"]][row["month_key"]] = int(row["total"])
+
+        biggest_frank_lead = max(balance_series) if balance_series else 0
+        biggest_kurt_lead = min(balance_series) if balance_series else 0
+
+        return {
+            "ok": True,
+            "range_key": range_key,
+            "range_start": range_start_iso,
+            "range_end": today_iso,
+            "participants": participants,
+            "labels": labels,
+            "balance_series": balance_series,
+            "cumulative_series": cumulative_series,
+            "monthly_labels": monthly_labels,
+            "monthly_totals": monthly_totals,
+            "totals_in_range": totals_in_range,
+            "summary": {
+                "current_balance": balance_series[-1] if balance_series else 0,
+                "frank_total": totals_in_range.get("frank", 0),
+                "kurt_total": totals_in_range.get("kurt", 0),
+                "biggest_frank_lead": biggest_frank_lead,
+                "biggest_kurt_lead": abs(biggest_kurt_lead),
+            },
+        }
+
     def upsert_entry(
         self,
         walk_date: str,
@@ -637,6 +759,11 @@ class DogWalkHandler(BaseHTTPRequestHandler):
         if path == "/api/activity":
             limit = int(query.get("limit", ["80"])[0])
             json_response(self, {"ok": True, "items": STORE.recent_activity(limit=limit)})
+            return
+
+        if path == "/api/stats":
+            range_key = query.get("range", ["90"])[0]
+            json_response(self, STORE.stats_payload(range_key=range_key))
             return
 
         if path == "/api/reminders/pending":

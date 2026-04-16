@@ -8,12 +8,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Chewie Walks">
   <title>Chewie Walk Tracker</title>
-  <script>window.__ASSET_VERSION__ = "0.1.28";</script>
+  <script>window.__ASSET_VERSION__ = "0.1.29";</script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
-  <link rel="manifest" href="/manifest.webmanifest?v=0.1.28">
-  <link rel="icon" href="/icon-192.png?v=0.1.28" type="image/png">
-  <link rel="apple-touch-icon" href="/icon-512.png?v=0.1.28">
-  <link rel="stylesheet" href="/styles.css?v=0.1.28">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+  <link rel="manifest" href="/manifest.webmanifest?v=0.1.29">
+  <link rel="icon" href="/icon-192.png?v=0.1.29" type="image/png">
+  <link rel="apple-touch-icon" href="/icon-512.png?v=0.1.29">
+  <link rel="stylesheet" href="/styles.css?v=0.1.29">
 </head>
 <body>
   <div class="page-shell">
@@ -74,9 +75,56 @@
       </section>
 
       <section class="tab-panel is-hidden" data-tab-panel="stats">
-        <section class="card placeholder-card">
-          <p class="section-kicker">Stats</p>
-          <h2>WIP</h2>
+        <section class="card stats-panel">
+          <div class="stats-header">
+            <div>
+              <p class="section-kicker">Stats</p>
+              <h2>Walk history</h2>
+            </div>
+            <label class="range-select-wrap">
+              <span>Range</span>
+              <select id="statsRangeSelect">
+                <option value="7">Past 7 days</option>
+                <option value="30">Past 30 days</option>
+                <option value="90" selected>Past 90 days</option>
+                <option value="365">Past year</option>
+                <option value="all">All time</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="stats-summary-grid" id="statsSummaryGrid">
+            <article class="stats-summary-card">
+              <p class="section-kicker">Current balance</p>
+              <strong>Loading...</strong>
+            </article>
+          </div>
+
+          <div class="stats-chart-grid">
+            <article class="stats-chart-card">
+              <div class="stats-chart-head">
+                <h3>Balance over time</h3>
+                <p class="help-copy">Above zero means Frank is ahead. Below zero means Kurt is ahead.</p>
+              </div>
+              <canvas id="balanceChart"></canvas>
+            </article>
+
+            <article class="stats-chart-card">
+              <div class="stats-chart-head">
+                <h3>Cumulative walks</h3>
+                <p class="help-copy">How the total walk count grew for each of you over the selected range.</p>
+              </div>
+              <canvas id="cumulativeChart"></canvas>
+            </article>
+
+            <article class="stats-chart-card">
+              <div class="stats-chart-head">
+                <h3>Monthly split</h3>
+                <p class="help-copy">A grouped bar view to compare who handled more walks each month.</p>
+              </div>
+              <canvas id="monthlyChart"></canvas>
+            </article>
+          </div>
         </section>
       </section>
 
@@ -104,6 +152,6 @@
       <p class="status-line" id="dialogStatus"></p>
     </form>
   </dialog>
-  <script src="/app.js?v=0.1.28" type="module"></script>
+  <script src="/app.js?v=0.1.29" type="module"></script>
 </body>
 </html>

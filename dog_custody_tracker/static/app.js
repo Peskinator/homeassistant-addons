@@ -12,6 +12,9 @@ const state = {
   app: null,
   actor: null,
   activityLoaded: false,
+  statsRange: "90",
+  statsLoaded: false,
+  charts: {},
 };
 
 const participantButtons = document.getElementById("participantButtons");
@@ -32,6 +35,11 @@ const rightParticipant = document.getElementById("rightParticipant");
 const buildTag = document.getElementById("buildTag");
 const activityList = document.getElementById("activityList");
 const activityActorLabel = document.getElementById("activityActorLabel");
+const statsRangeSelect = document.getElementById("statsRangeSelect");
+const statsSummaryGrid = document.getElementById("statsSummaryGrid");
+const balanceChartCanvas = document.getElementById("balanceChart");
+const cumulativeChartCanvas = document.getElementById("cumulativeChart");
+const monthlyChartCanvas = document.getElementById("monthlyChart");
 
 menuButton.addEventListener("click", toggleDrawer);
 document.querySelectorAll(".drawer-link").forEach((button) => {
@@ -40,6 +48,13 @@ document.querySelectorAll(".drawer-link").forEach((button) => {
 clearEntryButton.addEventListener("click", clearSelectedDay);
 clearSelectionButton.addEventListener("click", clearCalendarSelection);
 dayDialog.addEventListener("close", () => clearCalendarSelection());
+statsRangeSelect.addEventListener("change", async () => {
+  state.statsRange = statsRangeSelect.value;
+  state.statsLoaded = false;
+  if (state.activeTab === "stats") {
+    await loadStats(true);
+  }
+});
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register(`/sw.js?v=${window.__ASSET_VERSION__ || "dev"}`));
@@ -249,6 +264,19 @@ async function loadActivity(force = false) {
   state.activityLoaded = true;
 }
 
+async function loadStats(force = false) {
+  if (state.statsLoaded && !force) {
+    return;
+  }
+  const response = await fetch(`/api/stats?range=${encodeURIComponent(state.statsRange)}`);
+  const payload = await response.json();
+  if (!payload.ok) {
+    throw new Error(payload.error || "Could not load stats.");
+  }
+  renderStats(payload);
+  state.statsLoaded = true;
+}
+
 function renderActivity(items) {
   if (state.actor) {
     activityActorLabel.textContent = state.actor.email
@@ -291,6 +319,176 @@ function activityItemMarkup(item) {
       </div>
     </article>
   `;
+}
+
+function renderStats(payload) {
+  renderStatsSummary(payload);
+  renderBalanceChart(payload);
+  renderCumulativeChart(payload);
+  renderMonthlyChart(payload);
+}
+
+function renderStatsSummary(payload) {
+  const balance = payload.summary.current_balance;
+  const balanceCopy = balance === 0
+    ? "Perfectly even"
+    : balance > 0
+      ? `Frank +${balance}`
+      : `Kurt +${Math.abs(balance)}`;
+
+  statsSummaryGrid.innerHTML = `
+    <article class="stats-summary-card">
+      <p class="section-kicker">Current balance</p>
+      <strong>${balanceCopy}</strong>
+    </article>
+    <article class="stats-summary-card">
+      <p class="section-kicker">Frank walks</p>
+      <strong>${payload.summary.frank_total}</strong>
+    </article>
+    <article class="stats-summary-card">
+      <p class="section-kicker">Kurt walks</p>
+      <strong>${payload.summary.kurt_total}</strong>
+    </article>
+    <article class="stats-summary-card">
+      <p class="section-kicker">Biggest lead</p>
+      <strong>Frank ${payload.summary.biggest_frank_lead} / Kurt ${payload.summary.biggest_kurt_lead}</strong>
+    </article>
+  `;
+}
+
+function renderBalanceChart(payload) {
+  replaceChart("balance", balanceChartCanvas, {
+    type: "line",
+    data: {
+      labels: payload.labels.map(formatChartDate),
+      datasets: [{
+        label: "Balance",
+        data: payload.balance_series,
+        borderColor: "#1d201b",
+        backgroundColor: "rgba(29, 32, 27, 0.12)",
+        fill: true,
+        pointRadius: 0,
+        tension: 0.28,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        y: {
+          ticks: { color: "#6b665c" },
+          grid: { color: "rgba(29, 32, 27, 0.08)" },
+        },
+        x: {
+          ticks: { color: "#6b665c", maxTicksLimit: 8 },
+          grid: { display: false },
+        },
+      },
+    },
+  });
+}
+
+function renderCumulativeChart(payload) {
+  const frank = participantById("frank");
+  const kurt = participantById("kurt");
+  replaceChart("cumulative", cumulativeChartCanvas, {
+    type: "line",
+    data: {
+      labels: payload.labels.map(formatChartDate),
+      datasets: [
+        {
+          label: frank.display_name,
+          data: payload.cumulative_series.frank,
+          borderColor: frank.color,
+          backgroundColor: frank.accent,
+          pointRadius: 0,
+          tension: 0.24,
+        },
+        {
+          label: kurt.display_name,
+          data: payload.cumulative_series.kurt,
+          borderColor: kurt.color,
+          backgroundColor: kurt.accent,
+          pointRadius: 0,
+          tension: 0.24,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom" },
+      },
+      scales: {
+        y: {
+          ticks: { color: "#6b665c" },
+          grid: { color: "rgba(29, 32, 27, 0.08)" },
+        },
+        x: {
+          ticks: { color: "#6b665c", maxTicksLimit: 8 },
+          grid: { display: false },
+        },
+      },
+    },
+  });
+}
+
+function renderMonthlyChart(payload) {
+  const frank = participantById("frank");
+  const kurt = participantById("kurt");
+  replaceChart("monthly", monthlyChartCanvas, {
+    type: "bar",
+    data: {
+      labels: payload.monthly_labels.map(formatMonthLabel),
+      datasets: [
+        {
+          label: frank.display_name,
+          data: payload.monthly_labels.map((month) => payload.monthly_totals.frank?.[month] || 0),
+          backgroundColor: frank.accent,
+          borderColor: frank.color,
+          borderWidth: 1,
+          borderRadius: 8,
+        },
+        {
+          label: kurt.display_name,
+          data: payload.monthly_labels.map((month) => payload.monthly_totals.kurt?.[month] || 0),
+          backgroundColor: kurt.accent,
+          borderColor: kurt.color,
+          borderWidth: 1,
+          borderRadius: 8,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom" },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { color: "#6b665c" },
+          grid: { color: "rgba(29, 32, 27, 0.08)" },
+        },
+        x: {
+          ticks: { color: "#6b665c" },
+          grid: { display: false },
+        },
+      },
+    },
+  });
+}
+
+function replaceChart(key, canvas, config) {
+  if (state.charts[key]) {
+    state.charts[key].destroy();
+  }
+  state.charts[key] = new Chart(canvas, config);
 }
 
 function renderCalendarEvents(entries) {
@@ -413,8 +611,12 @@ async function saveAssignment(participantId) {
   dayDialog.close();
   await loadMonth(state.currentMonth);
   state.activityLoaded = false;
+  state.statsLoaded = false;
   if (state.activeTab === "activity") {
     await loadActivity(true);
+  }
+  if (state.activeTab === "stats") {
+    await loadStats(true);
   }
 }
 
@@ -442,8 +644,12 @@ async function clearSelectedDay() {
   clearCalendarSelection();
   await loadMonth(state.currentMonth);
   state.activityLoaded = false;
+  state.statsLoaded = false;
   if (state.activeTab === "activity") {
     await loadActivity(true);
+  }
+  if (state.activeTab === "stats") {
+    await loadStats(true);
   }
 }
 
@@ -469,6 +675,12 @@ function activateTab(tabId) {
     loadActivity().catch((error) => {
       console.error("Could not load activity", error);
       activityList.innerHTML = '<p class="empty-state">Could not load activity.</p>';
+    });
+  }
+  if (tabId === "stats") {
+    loadStats().catch((error) => {
+      console.error("Could not load stats", error);
+      statsSummaryGrid.innerHTML = '<p class="empty-state">Could not load stats.</p>';
     });
   }
 }
@@ -526,6 +738,21 @@ function formatActivityTime(isoTimestamp) {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+  });
+}
+
+function formatChartDate(isoDate) {
+  return new Date(`${isoDate}T12:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatMonthLabel(monthKey) {
+  const [year, month] = monthKey.split("-");
+  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString(undefined, {
+    month: "short",
+    year: "numeric",
   });
 }
 
