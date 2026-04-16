@@ -5,6 +5,7 @@ import mimetypes
 import os
 import sqlite3
 import tempfile
+import threading
 from contextlib import closing
 from datetime import date, datetime, timedelta
 from http import HTTPStatus
@@ -23,6 +24,7 @@ STATIC_DIR = BASE_DIR / "static"
 DEFAULT_DATA_DIR = Path("/data") if BASE_DIR == Path("/app") else (BASE_DIR / "data")
 DATA_DIR = Path(os.environ.get("DOG_WALK_DATA_DIR") or str(DEFAULT_DATA_DIR))
 DB_PATH = DATA_DIR / "dog_walks.sqlite3"
+ACTIVITY_LOG_PATH = DATA_DIR / "activity.jsonl"
 DEFAULT_PORT = 8420
 DATE_FORMATS = (
     "%Y-%m-%d",
@@ -51,6 +53,24 @@ PARTICIPANTS = (
         "photo": "/kurt.jpg",
     },
 )
+
+ACTOR_EMAILS = {
+    "francois.pesqui@gmail.com": {"id": "frank", "name": "Frank"},
+    "kurt.zuo@gmail.com": {"id": "kurt", "name": "Kurt"},
+}
+
+
+def app_version() -> str:
+    config_path = BASE_DIR / "config.yaml"
+    if config_path.exists():
+        match = re.search(r'^version:\s*"([^"]+)"', config_path.read_text(encoding="utf-8"), re.MULTILINE)
+        if match:
+            return match.group(1)
+    return os.environ.get("DOG_WALK_APP_VERSION", "dev")
+
+
+APP_VERSION = app_version()
+APP_MODE = "PROD" if BASE_DIR == Path("/app") else "TEST"
 
 
 def utcnow_iso() -> str:
@@ -127,6 +147,8 @@ def read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, Any]:
 class DogWalkStore:
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
+        self.activity_log_path = ACTIVITY_LOG_PATH
+        self.activity_lock = threading.Lock()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
@@ -297,6 +319,62 @@ class DogWalkStore:
             info["database_error"] = str(exc)
         return info
 
+    def get_entry(self, walk_date: str) -> dict[str, Any] | None:
+        with closing(self.connect()) as connection:
+            row = connection.execute(
+                """
+                SELECT walk_date, participant_id, source, notes, weather_summary, temperature_c, pain_index
+                FROM walk_entries
+                WHERE walk_date = ?
+                """,
+                (walk_date,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def append_activity(
+        self,
+        *,
+        actor: dict[str, Any],
+        walk_date: str,
+        action: str,
+        before: dict[str, Any] | None,
+        after: dict[str, Any] | None,
+    ) -> None:
+        payload = {
+            "timestamp": utcnow_iso(),
+            "actor_id": actor.get("id", "unknown"),
+            "actor_name": actor.get("name", "Unknown"),
+            "actor_email": actor.get("email"),
+            "actor_source": actor.get("source", "unknown"),
+            "walk_date": walk_date,
+            "action": action,
+            "before_participant_id": before.get("participant_id") if before else None,
+            "before_source": before.get("source") if before else None,
+            "after_participant_id": after.get("participant_id") if after else None,
+            "after_source": after.get("source") if after else None,
+        }
+        self.activity_log_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.activity_lock:
+            with self.activity_log_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(payload, ensure_ascii=True) + "\n")
+
+    def recent_activity(self, limit: int = 80) -> list[dict[str, Any]]:
+        if not self.activity_log_path.exists():
+            return []
+        lines = self.activity_log_path.read_text(encoding="utf-8").splitlines()
+        items: list[dict[str, Any]] = []
+        for raw_line in reversed(lines):
+            raw_line = raw_line.strip()
+            if not raw_line:
+                continue
+            try:
+                items.append(json.loads(raw_line))
+            except json.JSONDecodeError:
+                continue
+            if len(items) >= limit:
+                break
+        return items
+
     def upsert_entry(
         self,
         walk_date: str,
@@ -306,8 +384,10 @@ class DogWalkStore:
         weather_summary: str | None = None,
         temperature_c: float | None = None,
         pain_index: float | None = None,
+        actor: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         now = utcnow_iso()
+        previous_entry = self.get_entry(walk_date)
         with closing(self.connect()) as connection:
             connection.execute(
                 """
@@ -327,12 +407,34 @@ class DogWalkStore:
                 (walk_date, participant_id, source, notes, weather_summary, temperature_c, pain_index, now, now),
             )
             connection.commit()
+        current_entry = self.get_entry(walk_date)
+        if actor and (
+            previous_entry is None
+            or previous_entry.get("participant_id") != current_entry.get("participant_id")
+            or previous_entry.get("source") != current_entry.get("source")
+        ):
+            self.append_activity(
+                actor=actor,
+                walk_date=walk_date,
+                action="set",
+                before=previous_entry,
+                after=current_entry,
+            )
         return {"ok": True, "walk_date": walk_date, "participant_id": participant_id, "source": source}
 
-    def clear_entry(self, walk_date: str) -> dict[str, Any]:
+    def clear_entry(self, walk_date: str, actor: dict[str, Any] | None = None) -> dict[str, Any]:
+        previous_entry = self.get_entry(walk_date)
         with closing(self.connect()) as connection:
             connection.execute("DELETE FROM walk_entries WHERE walk_date = ?", (walk_date,))
             connection.commit()
+        if actor and previous_entry is not None:
+            self.append_activity(
+                actor=actor,
+                walk_date=walk_date,
+                action="clear",
+                before=previous_entry,
+                after=None,
+            )
         return {"ok": True, "walk_date": walk_date}
 
     def bulk_plan(
@@ -341,6 +443,7 @@ class DogWalkStore:
         end_date: str,
         participant_id: str,
         notes: str | None = None,
+        actor: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         start = parse_date(start_date)
         end = parse_date(end_date)
@@ -350,7 +453,7 @@ class DogWalkStore:
         current = start
         count = 0
         while current <= end:
-            self.upsert_entry(current.isoformat(), participant_id, source="planned", notes=notes)
+            self.upsert_entry(current.isoformat(), participant_id, source="planned", notes=notes, actor=actor)
             current += timedelta(days=1)
             count += 1
         return {"ok": True, "planned_days": count, "participant_id": participant_id}
@@ -360,12 +463,13 @@ class DogWalkStore:
         dates: list[str],
         participant_id: str,
         notes: str | None = None,
+        actor: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         assigned = 0
         for walk_date in sorted(set(dates)):
             normalized = parse_date(walk_date).isoformat()
             source = "planned" if normalized > date.today().isoformat() else "manual"
-            self.upsert_entry(normalized, participant_id, source=source, notes=notes)
+            self.upsert_entry(normalized, participant_id, source=source, notes=notes, actor=actor)
             assigned += 1
         return {"ok": True, "assigned_days": assigned, "participant_id": participant_id}
 
@@ -479,6 +583,37 @@ STORE = DogWalkStore(DB_PATH)
 class DogWalkHandler(BaseHTTPRequestHandler):
     server_version = "DogWalkTracker/0.1"
 
+    def request_actor(self) -> dict[str, Any]:
+        email = (self.headers.get("Cf-Access-Authenticated-User-Email") or "").strip().lower()
+        actor = ACTOR_EMAILS.get(email)
+        if actor:
+            return {
+                "id": actor["id"],
+                "name": actor["name"],
+                "email": email,
+                "source": "cloudflare_access",
+            }
+        return {
+            "id": "frank",
+            "name": "Frank",
+            "email": None,
+            "source": "lan_fallback",
+        }
+
+    def bootstrap_payload(
+        self,
+        month_key: str,
+        range_start: str | None = None,
+        range_end: str | None = None,
+    ) -> dict[str, Any]:
+        payload = STORE.get_month_payload(month_key, range_start=range_start, range_end=range_end)
+        payload["app"] = {
+            "version": APP_VERSION,
+            "mode": APP_MODE,
+        }
+        payload["actor"] = self.request_actor()
+        return payload
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path
@@ -492,11 +627,16 @@ class DogWalkHandler(BaseHTTPRequestHandler):
             month_key = query.get("month", [date.today().strftime("%Y-%m")])[0]
             range_start = query.get("range_start", [None])[0]
             range_end = query.get("range_end", [None])[0]
-            json_response(self, STORE.get_month_payload(month_key, range_start=range_start, range_end=range_end))
+            json_response(self, self.bootstrap_payload(month_key, range_start=range_start, range_end=range_end))
             return
 
         if path == "/api/admin/diagnostics":
             json_response(self, STORE.diagnostic_payload())
+            return
+
+        if path == "/api/activity":
+            limit = int(query.get("limit", ["80"])[0])
+            json_response(self, {"ok": True, "items": STORE.recent_activity(limit=limit)})
             return
 
         if path == "/api/reminders/pending":
@@ -522,7 +662,16 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                 participant_id = payload["participant_id"]
                 notes = payload.get("notes")
                 source = payload.get("source", "manual")
-                json_response(self, STORE.upsert_entry(walk_date, participant_id, source=source, notes=notes))
+                json_response(
+                    self,
+                    STORE.upsert_entry(
+                        walk_date,
+                        participant_id,
+                        source=source,
+                        notes=notes,
+                        actor=self.request_actor(),
+                    ),
+                )
                 return
 
             if path == "/api/entries/bulk-plan":
@@ -533,6 +682,7 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                         end_date=payload["end_date"],
                         participant_id=payload["participant_id"],
                         notes=payload.get("notes"),
+                        actor=self.request_actor(),
                     ),
                 )
                 return
@@ -544,6 +694,7 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                         dates=payload["dates"],
                         participant_id=payload["participant_id"],
                         notes=payload.get("notes"),
+                        actor=self.request_actor(),
                     ),
                 )
                 return
@@ -585,7 +736,7 @@ class DogWalkHandler(BaseHTTPRequestHandler):
             except ValueError:
                 json_response(self, {"ok": False, "error": "Invalid date."}, status=400)
                 return
-            json_response(self, STORE.clear_entry(walk_date))
+            json_response(self, STORE.clear_entry(walk_date, actor=self.request_actor()))
             return
 
         json_response(self, {"ok": False, "error": "Not found."}, status=404)

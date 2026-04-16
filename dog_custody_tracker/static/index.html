@@ -8,12 +8,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Chewie Walks">
   <title>Chewie Walk Tracker</title>
-  <script>window.__ASSET_VERSION__ = "0.1.27";</script>
+  <script>window.__ASSET_VERSION__ = "0.1.28";</script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
-  <link rel="manifest" href="/manifest.webmanifest?v=0.1.27">
-  <link rel="icon" href="/icon-192.png?v=0.1.27" type="image/png">
-  <link rel="apple-touch-icon" href="/icon-512.png?v=0.1.27">
-  <link rel="stylesheet" href="/styles.css?v=0.1.27">
+  <link rel="manifest" href="/manifest.webmanifest?v=0.1.28">
+  <link rel="icon" href="/icon-192.png?v=0.1.28" type="image/png">
+  <link rel="apple-touch-icon" href="/icon-512.png?v=0.1.28">
+  <link rel="stylesheet" href="/styles.css?v=0.1.28">
 </head>
 <body>
   <div class="page-shell">
@@ -25,13 +25,14 @@
       </button>
       <div class="title-block">
         <h1>Chewie Walk Tracker</h1>
-        <span class="build-tag">PROD v0.2.2</span>
+        <span class="build-tag" id="buildTag">Loading version…</span>
       </div>
       <div class="header-spacer" aria-hidden="true"></div>
     </header>
 
     <aside class="app-drawer is-hidden" id="appDrawer">
       <button class="drawer-link is-active" data-tab="calendar" type="button">Calendar</button>
+      <button class="drawer-link" data-tab="activity" type="button">Activity</button>
       <button class="drawer-link" data-tab="stats" type="button">Stats</button>
       <button class="drawer-link" data-tab="profile" type="button">Profile</button>
     </aside>
@@ -54,6 +55,21 @@
             <button class="subtle-button is-hidden" id="clearSelectionButton" type="button">Clear selection</button>
           </div>
           <div id="calendar"></div>
+        </section>
+      </section>
+
+      <section class="tab-panel is-hidden" data-tab-panel="activity">
+        <section class="card activity-panel">
+          <div class="activity-header">
+            <div>
+              <p class="section-kicker">Activity</p>
+              <h2>Recent changes</h2>
+            </div>
+            <p class="help-copy" id="activityActorLabel"></p>
+          </div>
+          <div class="activity-list" id="activityList">
+            <p class="empty-state">Loading activity...</p>
+          </div>
         </section>
       </section>
 
@@ -88,6 +104,6 @@
       <p class="status-line" id="dialogStatus"></p>
     </form>
   </dialog>
-  <script src="/app.js?v=0.1.27" type="module"></script>
+  <script src="/app.js?v=0.1.28" type="module"></script>
 </body>
 </html>

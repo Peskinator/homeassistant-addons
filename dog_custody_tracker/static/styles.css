@@ -259,6 +259,59 @@ h2 {
   align-items: center;
 }
 
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.activity-list {
+  display: grid;
+  gap: 12px;
+}
+
+.activity-item {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(29, 32, 27, 0.07);
+}
+
+.activity-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.activity-body {
+  display: grid;
+  gap: 6px;
+}
+
+.activity-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.activity-copy,
+.empty-state {
+  margin: 0;
+}
+
+.activity-time,
+.empty-state {
+  color: var(--muted);
+}
+
 .selection-summary {
   min-height: 24px;
   width: 100%;
@@ -577,6 +630,12 @@ h2 {
   .calendar-panel-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .activity-header,
+  .activity-topline {
+    display: grid;
+    gap: 4px;
   }
 
   .fc .fc-toolbar {

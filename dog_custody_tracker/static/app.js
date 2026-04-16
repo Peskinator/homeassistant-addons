@@ -9,6 +9,9 @@ const state = {
   suppressCalendarFetch: false,
   selectedDates: [],
   activeTab: "calendar",
+  app: null,
+  actor: null,
+  activityLoaded: false,
 };
 
 const participantButtons = document.getElementById("participantButtons");
@@ -26,6 +29,9 @@ const balanceDelta = document.getElementById("balanceDelta");
 const balanceCopy = document.getElementById("balanceCopy");
 const leftParticipant = document.getElementById("leftParticipant");
 const rightParticipant = document.getElementById("rightParticipant");
+const buildTag = document.getElementById("buildTag");
+const activityList = document.getElementById("activityList");
+const activityActorLabel = document.getElementById("activityActorLabel");
 
 menuButton.addEventListener("click", toggleDrawer);
 document.querySelectorAll(".drawer-link").forEach((button) => {
@@ -147,6 +153,8 @@ async function loadMonth(monthKey = state.currentMonth, rangeStart = null, range
   state.entries = payload.entries;
   state.entriesByDate = new Map(payload.entries.map((entry) => [entry.walk_date, entry]));
   state.totals = payload.totals;
+  state.app = payload.app;
+  state.actor = payload.actor;
   render(payload);
 }
 
@@ -161,10 +169,18 @@ function currentCalendarRange() {
 }
 
 function render(payload) {
+  renderBuildTag(payload.app);
   renderBalance(payload);
   renderParticipantDialogButtons();
   renderCalendarEvents(payload.entries);
   renderSelectionSummary();
+}
+
+function renderBuildTag(appMeta) {
+  if (!appMeta) {
+    return;
+  }
+  buildTag.textContent = `${appMeta.mode} v${appMeta.version}`;
 }
 
 function renderBalance(payload) {
@@ -218,6 +234,63 @@ function buildParticipantButton(participant, onClick, avatarOnly = false) {
   button.innerHTML = `<img class="participant-button-avatar" src="${participant.photo}" alt="${participant.display_name}"><span>${participant.display_name}</span>`;
   button.addEventListener("click", onClick);
   return button;
+}
+
+async function loadActivity(force = false) {
+  if (state.activityLoaded && !force) {
+    return;
+  }
+  const response = await fetch("/api/activity?limit=80");
+  const payload = await response.json();
+  if (!payload.ok) {
+    throw new Error(payload.error || "Could not load activity.");
+  }
+  renderActivity(payload.items || []);
+  state.activityLoaded = true;
+}
+
+function renderActivity(items) {
+  if (state.actor) {
+    activityActorLabel.textContent = state.actor.email
+      ? `Logged in as ${state.actor.name} (${state.actor.email})`
+      : `Logged in as ${state.actor.name}`;
+  } else {
+    activityActorLabel.textContent = "";
+  }
+
+  if (!items.length) {
+    activityList.innerHTML = '<p class="empty-state">No activity yet.</p>';
+    return;
+  }
+
+  activityList.innerHTML = items.map((item) => activityItemMarkup(item)).join("");
+}
+
+function activityItemMarkup(item) {
+  const actor = participantById(item.actor_id) || {
+    display_name: item.actor_name || "Unknown",
+    photo: "/icon-192.png",
+  };
+  const before = participantById(item.before_participant_id);
+  const after = participantById(item.after_participant_id);
+  const beforeLabel = before ? before.display_name : "empty";
+  const afterLabel = after ? after.display_name : "empty";
+  const line = item.action === "clear"
+    ? `${formatShortDate(item.walk_date)}: ${beforeLabel} -> empty`
+    : `${formatShortDate(item.walk_date)}: ${beforeLabel} -> ${afterLabel}`;
+
+  return `
+    <article class="activity-item">
+      <img class="activity-avatar" src="${actor.photo}" alt="${actor.display_name}">
+      <div class="activity-body">
+        <div class="activity-topline">
+          <strong>${actor.display_name}</strong>
+          <span class="activity-time">${formatActivityTime(item.timestamp)}</span>
+        </div>
+        <p class="activity-copy">${line}</p>
+      </div>
+    </article>
+  `;
 }
 
 function renderCalendarEvents(entries) {
@@ -339,6 +412,10 @@ async function saveAssignment(participantId) {
 
   dayDialog.close();
   await loadMonth(state.currentMonth);
+  state.activityLoaded = false;
+  if (state.activeTab === "activity") {
+    await loadActivity(true);
+  }
 }
 
 async function clearSelectedDay() {
@@ -364,6 +441,10 @@ async function clearSelectedDay() {
   dayDialog.close();
   clearCalendarSelection();
   await loadMonth(state.currentMonth);
+  state.activityLoaded = false;
+  if (state.activeTab === "activity") {
+    await loadActivity(true);
+  }
 }
 
 function toggleDrawer() {
@@ -383,6 +464,12 @@ function activateTab(tabId) {
   menuButton.setAttribute("aria-expanded", "false");
   if (tabId === "calendar") {
     state.calendar.updateSize();
+  }
+  if (tabId === "activity") {
+    loadActivity().catch((error) => {
+      console.error("Could not load activity", error);
+      activityList.innerHTML = '<p class="empty-state">Could not load activity.</p>';
+    });
   }
 }
 
@@ -430,6 +517,15 @@ function formatShortDate(isoDate) {
   return new Date(`${isoDate}T12:00:00`).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
+  });
+}
+
+function formatActivityTime(isoTimestamp) {
+  return new Date(isoTimestamp).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
