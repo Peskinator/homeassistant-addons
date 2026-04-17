@@ -102,6 +102,18 @@ def jwt_email(header_value: str | None) -> str | None:
     return None
 
 
+def cookie_value(cookie_header: str | None, name: str) -> str | None:
+    if not cookie_header:
+        return None
+    for chunk in cookie_header.split(";"):
+        if "=" not in chunk:
+            continue
+        key, value = chunk.split("=", 1)
+        if key.strip() == name:
+            return value.strip()
+    return None
+
+
 def parse_date(value: str) -> date:
     cleaned = value.strip()
     for fmt in DATE_FORMATS:
@@ -729,6 +741,9 @@ class DogWalkHandler(BaseHTTPRequestHandler):
         if not email:
             email = jwt_email(self.headers.get("Cf-Access-Jwt-Assertion"))
             email_source = "cloudflare_access_jwt"
+        if not email:
+            email = jwt_email(cookie_value(self.headers.get("Cookie"), "CF_Authorization"))
+            email_source = "cloudflare_access_cookie"
         actor = ACTOR_EMAILS.get(email)
         if actor:
             return {
