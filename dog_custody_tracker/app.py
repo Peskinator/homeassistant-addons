@@ -735,7 +735,17 @@ STORE = DogWalkStore(DB_PATH)
 class DogWalkHandler(BaseHTTPRequestHandler):
     server_version = "DogWalkTracker/0.1"
 
-    def request_actor(self) -> dict[str, Any]:
+    def request_actor(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        claimed_email = str((payload or {}).get("actor_email") or "").strip().lower()
+        actor = ACTOR_EMAILS.get(claimed_email)
+        if actor:
+            return {
+                "id": actor["id"],
+                "name": actor["name"],
+                "email": claimed_email,
+                "source": "client_claim",
+            }
+
         email = (self.headers.get("Cf-Access-Authenticated-User-Email") or "").strip().lower()
         email_source = "cloudflare_access_header"
         if not email:
@@ -833,7 +843,7 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                         participant_id,
                         source=source,
                         notes=notes,
-                        actor=self.request_actor(),
+                        actor=self.request_actor(payload),
                     ),
                 )
                 return
@@ -846,7 +856,7 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                         end_date=payload["end_date"],
                         participant_id=payload["participant_id"],
                         notes=payload.get("notes"),
-                        actor=self.request_actor(),
+                        actor=self.request_actor(payload),
                     ),
                 )
                 return
@@ -858,7 +868,7 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                         dates=payload["dates"],
                         participant_id=payload["participant_id"],
                         notes=payload.get("notes"),
-                        actor=self.request_actor(),
+                        actor=self.request_actor(payload),
                     ),
                 )
                 return
@@ -900,7 +910,14 @@ class DogWalkHandler(BaseHTTPRequestHandler):
             except ValueError:
                 json_response(self, {"ok": False, "error": "Invalid date."}, status=400)
                 return
-            json_response(self, STORE.clear_entry(walk_date, actor=self.request_actor()))
+            payload = {}
+            if self.headers.get("Content-Length"):
+                try:
+                    payload = read_json_body(self)
+                except json.JSONDecodeError:
+                    json_response(self, {"ok": False, "error": "Invalid JSON body."}, status=400)
+                    return
+            json_response(self, STORE.clear_entry(walk_date, actor=self.request_actor(payload)))
             return
 
         json_response(self, {"ok": False, "error": "Not found."}, status=404)

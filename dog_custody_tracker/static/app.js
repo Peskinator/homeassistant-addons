@@ -11,6 +11,7 @@ const state = {
   activeTab: "calendar",
   app: null,
   actor: null,
+  browserActor: null,
   activityLoaded: false,
   statsRange: "90",
   statsLoaded: false,
@@ -162,7 +163,46 @@ async function loadMonth(monthKey = state.currentMonth, rangeStart = null, range
   state.totals = payload.totals;
   state.app = payload.app;
   state.actor = payload.actor;
+  await hydrateBrowserActor();
   render(payload);
+}
+
+async function hydrateBrowserActor(force = false) {
+  if (state.browserActor && !force) {
+    return state.browserActor;
+  }
+
+  try {
+    const response = await fetch("/cdn-cgi/access/get-identity", {
+      credentials: "include",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return state.browserActor;
+    }
+    const payload = await response.json();
+    const email = String(payload?.email || "").trim().toLowerCase();
+    const actor = actorFromEmail(email);
+    if (actor) {
+      state.browserActor = actor;
+      state.actor = actor;
+    }
+  } catch (_error) {
+    return state.browserActor;
+  }
+
+  return state.browserActor;
+}
+
+function actorFromEmail(email) {
+  if (email === "francois.pesqui@gmail.com") {
+    return { id: "frank", name: "Frank", email, source: "cloudflare_identity_endpoint" };
+  }
+  if (email === "kurt.zuo@gmail.com") {
+    return { id: "kurt", name: "Kurt", email, source: "cloudflare_identity_endpoint" };
+  }
+  return null;
 }
 
 function currentCalendarRange() {
@@ -542,6 +582,8 @@ function openDayDialog(dates) {
 async function saveAssignment(participantId) {
   const selectedDates = JSON.parse(dayDialog.dataset.selectedDates || "[]");
   dialogStatus.textContent = "Saving...";
+  await hydrateBrowserActor(true);
+  const actorEmail = state.browserActor?.email || null;
 
   let response;
   if (selectedDates.length > 1) {
@@ -551,6 +593,7 @@ async function saveAssignment(participantId) {
       body: JSON.stringify({
         dates: selectedDates,
         participant_id: participantId,
+        actor_email: actorEmail,
       }),
     });
   } else {
@@ -561,6 +604,7 @@ async function saveAssignment(participantId) {
         walk_date: selectedDates[0],
         participant_id: participantId,
         source: selectedDates[0] > state.today ? "planned" : "manual",
+        actor_email: actorEmail,
       }),
     });
   }
@@ -590,10 +634,16 @@ async function clearSelectedDay() {
     return;
   }
 
+  await hydrateBrowserActor(true);
+  const actorEmail = state.browserActor?.email || null;
   dialogStatus.textContent = selectedDates.length === 1 ? "Clearing..." : `Clearing ${selectedDates.length} days...`;
   const results = await Promise.all(
     selectedDates.map(async (walkDate) => {
-      const response = await fetch(`/api/entries/${walkDate}`, { method: "DELETE" });
+      const response = await fetch(`/api/entries/${walkDate}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ actor_email: actorEmail }),
+      });
       return response.json();
     }),
   );
