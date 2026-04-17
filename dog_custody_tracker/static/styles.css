@@ -558,29 +558,12 @@ h2 {
   background: #c5b49b;
 }
 
-.fc .fc-daygrid-day.is-planned .fc-daygrid-day-frame {
-  position: relative;
+.fc .fc-daygrid-day.has-assignment-frank.is-planned .fc-daygrid-day-frame {
+  background: #d9e5f1;
 }
 
-.fc .fc-daygrid-day.is-planned .fc-daygrid-day-frame::after {
-  content: "";
-  position: absolute;
-  inset: 5px;
-  border-radius: 16px;
-  border: 2px dashed rgba(255, 251, 245, 0.82);
-  background:
-    repeating-linear-gradient(
-      -45deg,
-      rgba(255, 251, 245, 0.18) 0 8px,
-      rgba(255, 251, 245, 0) 8px 16px
-    );
-  pointer-events: none;
-}
-
-.fc .fc-daygrid-day.is-planned .fc-daygrid-day-number,
-.fc .fc-daygrid-day.is-planned .fc-event-card {
-  position: relative;
-  z-index: 1;
+.fc .fc-daygrid-day.has-assignment-kurt.is-planned .fc-daygrid-day-frame {
+  background: #e5dacd;
 }
 
 .fc .fc-daygrid-day.manual-selected .fc-daygrid-day-frame {
