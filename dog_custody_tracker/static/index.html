@@ -8,13 +8,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Chewie Walks">
   <title>Chewie Walk Tracker</title>
-  <script>window.__ASSET_VERSION__ = "0.1.33";</script>
+  <script>window.__ASSET_VERSION__ = "0.1.34";</script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
-  <link rel="manifest" href="/manifest.webmanifest?v=0.1.33">
-  <link rel="icon" href="/icon-192.png?v=0.1.33" type="image/png">
-  <link rel="apple-touch-icon" href="/icon-512.png?v=0.1.33">
-  <link rel="stylesheet" href="/styles.css?v=0.1.33">
+  <link rel="manifest" href="/manifest.webmanifest?v=0.1.34">
+  <link rel="icon" href="/icon-192.png?v=0.1.34" type="image/png">
+  <link rel="apple-touch-icon" href="/icon-512.png?v=0.1.34">
+  <link rel="stylesheet" href="/styles.css?v=0.1.34">
 </head>
 <body>
   <div class="page-shell">
@@ -99,7 +99,9 @@
                 <h3>Balance over time</h3>
                 <p class="help-copy">Above zero means Frank is ahead. Below zero means Kurt is ahead.</p>
               </div>
-              <canvas id="balanceChart"></canvas>
+              <div class="chart-wrap">
+                <canvas id="balanceChart"></canvas>
+              </div>
             </article>
 
             <article class="stats-chart-card">
@@ -107,7 +109,9 @@
                 <h3>Cumulative walks</h3>
                 <p class="help-copy">How the total walk count grew for each of you over the selected range.</p>
               </div>
-              <canvas id="cumulativeChart"></canvas>
+              <div class="chart-wrap">
+                <canvas id="cumulativeChart"></canvas>
+              </div>
             </article>
 
             <article class="stats-chart-card">
@@ -115,7 +119,9 @@
                 <h3>Monthly split</h3>
                 <p class="help-copy">A grouped bar view to compare who handled more walks each month.</p>
               </div>
-              <canvas id="monthlyChart"></canvas>
+              <div class="chart-wrap">
+                <canvas id="monthlyChart"></canvas>
+              </div>
             </article>
           </div>
         </section>
@@ -145,6 +151,6 @@
       <p class="status-line" id="dialogStatus"></p>
     </form>
   </dialog>
-  <script src="/app.js?v=0.1.33" type="module"></script>
+  <script src="/app.js?v=0.1.34" type="module"></script>
 </body>
 </html>

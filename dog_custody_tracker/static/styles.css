@@ -357,9 +357,15 @@ h2 {
   font-family: var(--font-display);
 }
 
+.chart-wrap {
+  position: relative;
+  height: 260px;
+}
+
 .stats-chart-card canvas {
-  width: 100%;
-  height: 260px !important;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .selection-summary {
@@ -705,8 +711,8 @@ h2 {
     gap: 4px;
   }
 
-  .stats-chart-card canvas {
-    height: 220px !important;
+  .chart-wrap {
+    height: 220px;
   }
 
   .fc .fc-toolbar {
