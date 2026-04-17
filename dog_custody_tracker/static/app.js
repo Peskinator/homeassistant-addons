@@ -36,7 +36,6 @@ const buildTag = document.getElementById("buildTag");
 const activityList = document.getElementById("activityList");
 const activityActorLabel = document.getElementById("activityActorLabel");
 const statsRangeSelect = document.getElementById("statsRangeSelect");
-const statsSummaryGrid = document.getElementById("statsSummaryGrid");
 const balanceChartCanvas = document.getElementById("balanceChart");
 const cumulativeChartCanvas = document.getElementById("cumulativeChart");
 const monthlyChartCanvas = document.getElementById("monthlyChart");
@@ -138,13 +137,6 @@ function initializeCalendar() {
       avatar.alt = participant.display_name;
 
       wrapper.appendChild(avatar);
-
-      if (arg.event.extendedProps.sourceLabel === "planned") {
-        const meta = document.createElement("span");
-        meta.className = "event-source";
-        meta.textContent = "planned";
-        wrapper.appendChild(meta);
-      }
 
       return { domNodes: [wrapper] };
     },
@@ -304,8 +296,8 @@ function activityItemMarkup(item) {
   const beforeLabel = before ? before.display_name : "empty";
   const afterLabel = after ? after.display_name : "empty";
   const line = item.action === "clear"
-    ? `${formatShortDate(item.walk_date)}: ${beforeLabel} -> empty`
-    : `${formatShortDate(item.walk_date)}: ${beforeLabel} -> ${afterLabel}`;
+    ? `${formatShortDate(item.walk_date)}: ${beforeLabel} → empty`
+    : `${formatShortDate(item.walk_date)}: ${beforeLabel} → ${afterLabel}`;
 
   return `
     <article class="activity-item">
@@ -322,38 +314,9 @@ function activityItemMarkup(item) {
 }
 
 function renderStats(payload) {
-  renderStatsSummary(payload);
   renderBalanceChart(payload);
   renderCumulativeChart(payload);
   renderMonthlyChart(payload);
-}
-
-function renderStatsSummary(payload) {
-  const balance = payload.summary.current_balance;
-  const balanceCopy = balance === 0
-    ? "Perfectly even"
-    : balance > 0
-      ? `Frank +${balance}`
-      : `Kurt +${Math.abs(balance)}`;
-
-  statsSummaryGrid.innerHTML = `
-    <article class="stats-summary-card">
-      <p class="section-kicker">Current balance</p>
-      <strong>${balanceCopy}</strong>
-    </article>
-    <article class="stats-summary-card">
-      <p class="section-kicker">Frank walks</p>
-      <strong>${payload.summary.frank_total}</strong>
-    </article>
-    <article class="stats-summary-card">
-      <p class="section-kicker">Kurt walks</p>
-      <strong>${payload.summary.kurt_total}</strong>
-    </article>
-    <article class="stats-summary-card">
-      <p class="section-kicker">Biggest lead</p>
-      <strong>Frank ${payload.summary.biggest_frank_lead} / Kurt ${payload.summary.biggest_kurt_lead}</strong>
-    </article>
-  `;
 }
 
 function renderBalanceChart(payload) {
@@ -680,7 +643,7 @@ function activateTab(tabId) {
   if (tabId === "stats") {
     loadStats().catch((error) => {
       console.error("Could not load stats", error);
-      statsSummaryGrid.innerHTML = '<p class="empty-state">Could not load stats.</p>';
+      balanceChartCanvas.closest(".stats-chart-grid").innerHTML = '<p class="empty-state">Could not load stats.</p>';
     });
   }
 }
@@ -702,7 +665,11 @@ function dayCellClasses(dateValue) {
   if (!entry) {
     return [];
   }
-  return ["has-assignment", `has-assignment-${entry.participant_id}`];
+  const classes = ["has-assignment", `has-assignment-${entry.participant_id}`];
+  if (entry.source === "planned") {
+    classes.push("is-planned");
+  }
+  return classes;
 }
 
 function datesFromExclusiveRange(startStr, endStr) {

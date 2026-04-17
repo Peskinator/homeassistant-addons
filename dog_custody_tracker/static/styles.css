@@ -336,25 +336,11 @@ h2 {
   font: inherit;
 }
 
-.stats-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.stats-summary-card,
 .stats-chart-card {
   padding: 16px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.58);
   border: 1px solid rgba(29, 32, 27, 0.07);
-}
-
-.stats-summary-card strong {
-  display: block;
-  font-size: 1.2rem;
-  line-height: 1.2;
 }
 
 .stats-chart-grid {
@@ -539,10 +525,8 @@ h2 {
 
 .fc-event-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
   min-height: 58px;
   width: auto;
   padding: 2px 4px 6px;
@@ -560,19 +544,37 @@ h2 {
   box-shadow: 0 10px 20px rgba(29, 32, 27, 0.12);
 }
 
-.event-source {
-  font-size: 0.58rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.95;
-}
-
 .fc .fc-daygrid-day.has-assignment-frank .fc-daygrid-day-frame {
   background: #a7bfd6;
 }
 
 .fc .fc-daygrid-day.has-assignment-kurt .fc-daygrid-day-frame {
   background: #c5b49b;
+}
+
+.fc .fc-daygrid-day.is-planned .fc-daygrid-day-frame {
+  position: relative;
+}
+
+.fc .fc-daygrid-day.is-planned .fc-daygrid-day-frame::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 16px;
+  border: 2px dashed rgba(255, 251, 245, 0.82);
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 251, 245, 0.18) 0 8px,
+      rgba(255, 251, 245, 0) 8px 16px
+    );
+  pointer-events: none;
+}
+
+.fc .fc-daygrid-day.is-planned .fc-daygrid-day-number,
+.fc .fc-daygrid-day.is-planned .fc-event-card {
+  position: relative;
+  z-index: 1;
 }
 
 .fc .fc-daygrid-day.manual-selected .fc-daygrid-day-frame {
@@ -701,10 +703,6 @@ h2 {
   .stats-header {
     display: grid;
     gap: 4px;
-  }
-
-  .stats-summary-grid {
-    grid-template-columns: 1fr 1fr;
   }
 
   .stats-chart-card canvas {
