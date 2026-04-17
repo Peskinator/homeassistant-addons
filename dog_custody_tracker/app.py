@@ -774,6 +774,7 @@ class DogWalkHandler(BaseHTTPRequestHandler):
         cookie_header = self.headers.get("Cookie")
         cookie_token = cookie_value(cookie_header, "CF_Authorization")
         actor_probe = (payload or {}).get("actor_probe")
+        app_probe = (payload or {}).get("app_probe")
         return {
             "timestamp": utcnow_iso(),
             "action": action,
@@ -782,7 +783,12 @@ class DogWalkHandler(BaseHTTPRequestHandler):
             "target_dates": target_dates or [],
             "claimed_actor_email": (payload or {}).get("actor_email"),
             "actor_probe": actor_probe if isinstance(actor_probe, dict) else None,
+            "app_probe": app_probe if isinstance(app_probe, dict) else None,
             "resolved_actor": resolved_actor,
+            "server_app": {
+                "version": APP_VERSION,
+                "mode": APP_MODE,
+            },
             "headers": {
                 "host": self.headers.get("Host"),
                 "origin": self.headers.get("Origin"),

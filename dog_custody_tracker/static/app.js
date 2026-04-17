@@ -205,6 +205,30 @@ function actorFromEmail(email) {
   return null;
 }
 
+function appProbe() {
+  const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || false;
+  return {
+    app_version: state.app?.version || null,
+    app_mode: state.app?.mode || null,
+    asset_version: window.__ASSET_VERSION__ || null,
+    browser_actor: state.browserActor
+      ? {
+          id: state.browserActor.id,
+          name: state.browserActor.name,
+          email: state.browserActor.email,
+          source: state.browserActor.source,
+        }
+      : null,
+    display_mode: standalone ? "standalone" : "browser",
+    source_param: new URLSearchParams(window.location.search).get("source"),
+    href: window.location.href,
+    referrer: document.referrer || null,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+    language: navigator.language || null,
+    user_agent: navigator.userAgent || null,
+  };
+}
+
 function currentCalendarRange() {
   if (!state.calendar?.view?.activeStart || !state.calendar?.view?.activeEnd) {
     return null;
@@ -599,6 +623,7 @@ async function saveAssignment(participantId) {
           source: state.browserActor?.source || null,
           resolved: Boolean(state.browserActor),
         },
+        app_probe: appProbe(),
       }),
     });
   } else {
@@ -615,6 +640,7 @@ async function saveAssignment(participantId) {
           source: state.browserActor?.source || null,
           resolved: Boolean(state.browserActor),
         },
+        app_probe: appProbe(),
       }),
     });
   }
@@ -659,6 +685,7 @@ async function clearSelectedDay() {
             source: state.browserActor?.source || null,
             resolved: Boolean(state.browserActor),
           },
+          app_probe: appProbe(),
         }),
       });
       return response.json();
