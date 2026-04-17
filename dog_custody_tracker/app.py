@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import mimetypes
 import os
@@ -82,6 +83,23 @@ STATS_RANGES = {
 
 def utcnow_iso() -> str:
     return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+
+def jwt_email(header_value: str | None) -> str | None:
+    if not header_value:
+        return None
+    parts = header_value.split(".")
+    if len(parts) < 2:
+        return None
+    try:
+        padded = parts[1] + "=" * (-len(parts[1]) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8"))
+    except (ValueError, json.JSONDecodeError):
+        return None
+    email = payload.get("email")
+    if isinstance(email, str) and email.strip():
+        return email.strip().lower()
+    return None
 
 
 def parse_date(value: str) -> date:
@@ -707,13 +725,17 @@ class DogWalkHandler(BaseHTTPRequestHandler):
 
     def request_actor(self) -> dict[str, Any]:
         email = (self.headers.get("Cf-Access-Authenticated-User-Email") or "").strip().lower()
+        email_source = "cloudflare_access_header"
+        if not email:
+            email = jwt_email(self.headers.get("Cf-Access-Jwt-Assertion"))
+            email_source = "cloudflare_access_jwt"
         actor = ACTOR_EMAILS.get(email)
         if actor:
             return {
                 "id": actor["id"],
                 "name": actor["name"],
                 "email": email,
-                "source": "cloudflare_access",
+                "source": email_source,
             }
         return {
             "id": "frank",
