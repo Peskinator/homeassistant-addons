@@ -26,6 +26,7 @@ DEFAULT_DATA_DIR = Path("/data") if BASE_DIR == Path("/app") else (BASE_DIR / "d
 DATA_DIR = Path(os.environ.get("DOG_WALK_DATA_DIR") or str(DEFAULT_DATA_DIR))
 DB_PATH = DATA_DIR / "dog_walks.sqlite3"
 ACTIVITY_LOG_PATH = DATA_DIR / "activity.jsonl"
+WRITE_DEBUG_LOG_PATH = DATA_DIR / "write_debug.jsonl"
 DEFAULT_PORT = 8420
 DATE_FORMATS = (
     "%Y-%m-%d",
@@ -185,7 +186,9 @@ class DogWalkStore:
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
         self.activity_log_path = ACTIVITY_LOG_PATH
+        self.write_debug_log_path = WRITE_DEBUG_LOG_PATH
         self.activity_lock = threading.Lock()
+        self.write_debug_lock = threading.Lock()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
@@ -399,6 +402,29 @@ class DogWalkStore:
         if not self.activity_log_path.exists():
             return []
         lines = self.activity_log_path.read_text(encoding="utf-8").splitlines()
+        items: list[dict[str, Any]] = []
+        for raw_line in reversed(lines):
+            raw_line = raw_line.strip()
+            if not raw_line:
+                continue
+            try:
+                items.append(json.loads(raw_line))
+            except json.JSONDecodeError:
+                continue
+            if len(items) >= limit:
+                break
+        return items
+
+    def append_write_debug(self, payload: dict[str, Any]) -> None:
+        self.write_debug_log_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.write_debug_lock:
+            with self.write_debug_log_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(payload, ensure_ascii=True) + "\n")
+
+    def recent_write_debug(self, limit: int = 80) -> list[dict[str, Any]]:
+        if not self.write_debug_log_path.exists():
+            return []
+        lines = self.write_debug_log_path.read_text(encoding="utf-8").splitlines()
         items: list[dict[str, Any]] = []
         for raw_line in reversed(lines):
             raw_line = raw_line.strip()
@@ -735,6 +761,43 @@ STORE = DogWalkStore(DB_PATH)
 class DogWalkHandler(BaseHTTPRequestHandler):
     server_version = "DogWalkTracker/0.1"
 
+    def request_debug_snapshot(
+        self,
+        *,
+        payload: dict[str, Any] | None,
+        resolved_actor: dict[str, Any],
+        action: str,
+        target_dates: list[str] | None = None,
+    ) -> dict[str, Any]:
+        cf_header_email = (self.headers.get("Cf-Access-Authenticated-User-Email") or "").strip().lower() or None
+        jwt_header = self.headers.get("Cf-Access-Jwt-Assertion")
+        cookie_header = self.headers.get("Cookie")
+        cookie_token = cookie_value(cookie_header, "CF_Authorization")
+        actor_probe = (payload or {}).get("actor_probe")
+        return {
+            "timestamp": utcnow_iso(),
+            "action": action,
+            "path": self.path,
+            "method": self.command,
+            "target_dates": target_dates or [],
+            "claimed_actor_email": (payload or {}).get("actor_email"),
+            "actor_probe": actor_probe if isinstance(actor_probe, dict) else None,
+            "resolved_actor": resolved_actor,
+            "headers": {
+                "host": self.headers.get("Host"),
+                "origin": self.headers.get("Origin"),
+                "referer": self.headers.get("Referer"),
+                "user_agent": self.headers.get("User-Agent"),
+                "cf_connecting_ip": self.headers.get("CF-Connecting-IP"),
+                "cf_ray": self.headers.get("CF-Ray"),
+                "cf_access_authenticated_user_email": cf_header_email,
+                "cf_access_jwt_assertion_present": bool(jwt_header),
+                "cf_access_jwt_assertion_email": jwt_email(jwt_header),
+                "cf_authorization_cookie_present": bool(cookie_token),
+                "cf_authorization_cookie_email": jwt_email(cookie_token),
+            },
+        }
+
     def request_actor(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         claimed_email = str((payload or {}).get("actor_email") or "").strip().lower()
         actor = ACTOR_EMAILS.get(claimed_email)
@@ -808,6 +871,11 @@ class DogWalkHandler(BaseHTTPRequestHandler):
             json_response(self, {"ok": True, "items": STORE.recent_activity(limit=limit)})
             return
 
+        if path == "/api/admin/write-debug":
+            limit = int(query.get("limit", ["80"])[0])
+            json_response(self, {"ok": True, "items": STORE.recent_write_debug(limit=limit)})
+            return
+
         if path == "/api/stats":
             range_key = query.get("range", ["90"])[0]
             json_response(self, STORE.stats_payload(range_key=range_key))
@@ -836,6 +904,15 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                 participant_id = payload["participant_id"]
                 notes = payload.get("notes")
                 source = payload.get("source", "manual")
+                actor = self.request_actor(payload)
+                STORE.append_write_debug(
+                    self.request_debug_snapshot(
+                        payload=payload,
+                        resolved_actor=actor,
+                        action="set_single",
+                        target_dates=[walk_date],
+                    )
+                )
                 json_response(
                     self,
                     STORE.upsert_entry(
@@ -843,32 +920,52 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                         participant_id,
                         source=source,
                         notes=notes,
-                        actor=self.request_actor(payload),
+                        actor=actor,
                     ),
                 )
                 return
 
             if path == "/api/entries/bulk-plan":
+                actor = self.request_actor(payload)
+                start_date = payload["start_date"]
+                end_date = payload["end_date"]
+                STORE.append_write_debug(
+                    self.request_debug_snapshot(
+                        payload=payload,
+                        resolved_actor=actor,
+                        action="bulk_plan",
+                        target_dates=[start_date, end_date],
+                    )
+                )
                 json_response(
                     self,
                     STORE.bulk_plan(
-                        start_date=payload["start_date"],
-                        end_date=payload["end_date"],
+                        start_date=start_date,
+                        end_date=end_date,
                         participant_id=payload["participant_id"],
                         notes=payload.get("notes"),
-                        actor=self.request_actor(payload),
+                        actor=actor,
                     ),
                 )
                 return
 
             if path == "/api/entries/assign-dates":
+                actor = self.request_actor(payload)
+                STORE.append_write_debug(
+                    self.request_debug_snapshot(
+                        payload=payload,
+                        resolved_actor=actor,
+                        action="assign_dates",
+                        target_dates=list(payload.get("dates") or []),
+                    )
+                )
                 json_response(
                     self,
                     STORE.assign_dates(
                         dates=payload["dates"],
                         participant_id=payload["participant_id"],
                         notes=payload.get("notes"),
-                        actor=self.request_actor(payload),
+                        actor=actor,
                     ),
                 )
                 return
@@ -917,7 +1014,16 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                 except json.JSONDecodeError:
                     json_response(self, {"ok": False, "error": "Invalid JSON body."}, status=400)
                     return
-            json_response(self, STORE.clear_entry(walk_date, actor=self.request_actor(payload)))
+            actor = self.request_actor(payload)
+            STORE.append_write_debug(
+                self.request_debug_snapshot(
+                    payload=payload,
+                    resolved_actor=actor,
+                    action="clear",
+                    target_dates=[walk_date],
+                )
+            )
+            json_response(self, STORE.clear_entry(walk_date, actor=actor))
             return
 
         json_response(self, {"ok": False, "error": "Not found."}, status=404)

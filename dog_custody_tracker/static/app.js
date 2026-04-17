@@ -594,6 +594,11 @@ async function saveAssignment(participantId) {
         dates: selectedDates,
         participant_id: participantId,
         actor_email: actorEmail,
+        actor_probe: {
+          email: actorEmail,
+          source: state.browserActor?.source || null,
+          resolved: Boolean(state.browserActor),
+        },
       }),
     });
   } else {
@@ -605,6 +610,11 @@ async function saveAssignment(participantId) {
         participant_id: participantId,
         source: selectedDates[0] > state.today ? "planned" : "manual",
         actor_email: actorEmail,
+        actor_probe: {
+          email: actorEmail,
+          source: state.browserActor?.source || null,
+          resolved: Boolean(state.browserActor),
+        },
       }),
     });
   }
@@ -642,7 +652,14 @@ async function clearSelectedDay() {
       const response = await fetch(`/api/entries/${walkDate}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ actor_email: actorEmail }),
+        body: JSON.stringify({
+          actor_email: actorEmail,
+          actor_probe: {
+            email: actorEmail,
+            source: state.browserActor?.source || null,
+            resolved: Boolean(state.browserActor),
+          },
+        }),
       });
       return response.json();
     }),
