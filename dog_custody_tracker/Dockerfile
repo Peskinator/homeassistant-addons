@@ -23,7 +23,7 @@ CMD ["python", "app.py"]
 LABEL \
     io.hass.name="${BUILD_NAME}" \
     io.hass.description="${BUILD_DESCRIPTION}" \
-    io.hass.arch="armhf|armv7|aarch64|amd64|i386" \
+    io.hass.arch="amd64" \
     io.hass.type="addon" \
     io.hass.version="${BUILD_VERSION}" \
     org.opencontainers.image.title="${BUILD_NAME}" \

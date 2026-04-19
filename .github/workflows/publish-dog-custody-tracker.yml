@@ -50,7 +50,7 @@ jobs:
         with:
           context: ./dog_custody_tracker
           file: ./dog_custody_tracker/Dockerfile
-          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,linux/386
+          platforms: linux/amd64
           push: true
           tags: |
             ghcr.io/peskinator/dog-custody-tracker:${{ steps.addon.outputs.version }}
