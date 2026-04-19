@@ -372,11 +372,7 @@ function activityItemMarkup(item) {
   };
   const before = participantById(item.before_participant_id);
   const after = participantById(item.after_participant_id);
-  const beforeLabel = before ? before.display_name : "empty";
-  const afterLabel = after ? after.display_name : "empty";
-  const line = item.action === "clear"
-    ? `${formatShortDate(item.walk_date)}: ${beforeLabel} → empty`
-    : `${formatShortDate(item.walk_date)}: ${beforeLabel} → ${afterLabel}`;
+  const line = activityDescription(item, before, after);
 
   return `
     <article class="activity-item">
@@ -390,6 +386,28 @@ function activityItemMarkup(item) {
       </div>
     </article>
   `;
+}
+
+function activityDescription(item, before, after) {
+  const dayLabel = formatShortDate(item.walk_date);
+
+  if (!before && after) {
+    return `➕ Added ${after.display_name} on ${dayLabel}`;
+  }
+
+  if (before && !after) {
+    return `➖ Removed ${before.display_name} from ${dayLabel}`;
+  }
+
+  if (before && after && before.id !== after.id) {
+    return `🔄 Swapped ${dayLabel}: ${before.display_name} → ${after.display_name}`;
+  }
+
+  if (after) {
+    return `✏️ Updated ${dayLabel} for ${after.display_name}`;
+  }
+
+  return `✏️ Updated ${dayLabel}`;
 }
 
 function renderStats(payload) {
@@ -809,9 +827,10 @@ function formatShortDate(isoDate) {
 }
 
 function formatActivityTime(isoTimestamp) {
-  return new Date(isoTimestamp).toLocaleString(undefined, {
+  return new Date(isoTimestamp).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
+    year: "numeric",
     hour: "numeric",
     minute: "2-digit",
   });
