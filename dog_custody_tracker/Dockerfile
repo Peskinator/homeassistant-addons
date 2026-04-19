@@ -1,4 +1,4 @@
-FROM alpine:3.21
+FROM python:3.12-slim
 
 ARG BUILD_DATE
 ARG BUILD_DESCRIPTION="Shared dog custody tracker with a mobile-friendly calendar UI."
@@ -10,8 +10,7 @@ ARG BUILD_VERSION
 WORKDIR /app
 COPY . /app
 
-RUN apk add --no-cache python3 py3-pip py3-cryptography py3-requests py3-six \
-    && pip install --no-cache-dir pywebpush==1.14.1
+RUN pip install --no-cache-dir pywebpush==1.14.1
 
 ENV DOG_WALK_HOST=0.0.0.0
 ENV DOG_WALK_PORT=8420
@@ -19,7 +18,7 @@ ENV DOG_WALK_DATA_DIR=/data
 
 EXPOSE 8420
 
-CMD ["python3", "app.py"]
+CMD ["python", "app.py"]
 
 LABEL \
     io.hass.name="${BUILD_NAME}" \
