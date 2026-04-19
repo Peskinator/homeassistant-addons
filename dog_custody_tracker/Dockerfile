@@ -10,8 +10,8 @@ ARG BUILD_VERSION
 WORKDIR /app
 COPY . /app
 
-RUN apk add --no-cache python3 py3-pip py3-cryptography \
-    && pip install --no-cache-dir pywebpush
+RUN apk add --no-cache python3 py3-pip py3-cryptography py3-requests py3-six \
+    && pip install --no-cache-dir pywebpush==1.14.1
 
 ENV DOG_WALK_HOST=0.0.0.0
 ENV DOG_WALK_PORT=8420
