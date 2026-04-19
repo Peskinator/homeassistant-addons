@@ -1,4 +1,4 @@
-const ASSET_VERSION = "0.1.40";
+const ASSET_VERSION = "0.1.41";
 const CACHE_NAME = `chewie-walk-tracker-${ASSET_VERSION}`;
 const APP_SHELL = [
   "/",
@@ -57,5 +57,45 @@ self.addEventListener("fetch", (event) => {
           return Response.error();
         })
       )
+  );
+});
+
+self.addEventListener("push", (event) => {
+  const payload = (() => {
+    try {
+      return event.data?.json() || {};
+    } catch (_error) {
+      return { body: event.data?.text() || "" };
+    }
+  })();
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || "Chewie Walk Tracker", {
+      body: payload.body || "There is an update in Chewie Walk Tracker.",
+      icon: payload.icon || `/icon-192.png?v=${ASSET_VERSION}`,
+      badge: payload.badge || `/icon-192.png?v=${ASSET_VERSION}`,
+      tag: payload.tag || "chewie-notification",
+      data: {
+        url: payload.url || "/?source=notification",
+      },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = new URL(event.notification.data?.url || "/?source=notification", self.location.origin).href;
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === targetUrl && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+      return undefined;
+    })
   );
 });

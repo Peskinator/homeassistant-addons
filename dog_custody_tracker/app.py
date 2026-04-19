@@ -17,6 +17,10 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from pywebpush import WebPushException, webpush
+
 mimetypes.add_type("application/manifest+json", ".webmanifest")
 mimetypes.add_type("image/svg+xml", ".svg")
 
@@ -27,7 +31,9 @@ DATA_DIR = Path(os.environ.get("DOG_WALK_DATA_DIR") or str(DEFAULT_DATA_DIR))
 DB_PATH = DATA_DIR / "dog_walks.sqlite3"
 ACTIVITY_LOG_PATH = DATA_DIR / "activity.jsonl"
 WRITE_DEBUG_LOG_PATH = DATA_DIR / "write_debug.jsonl"
+VAPID_PRIVATE_KEY_PATH = DATA_DIR / "vapid_private_key.pem"
 DEFAULT_PORT = 8420
+VAPID_SUBJECT = "mailto:francois.pesqui@gmail.com"
 DATE_FORMATS = (
     "%Y-%m-%d",
     "%m/%d/%Y",
@@ -95,6 +101,32 @@ STATS_RANGES = {
 
 def utcnow_iso() -> str:
     return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+
+def b64url_encode(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
+
+
+def vapid_material() -> dict[str, str]:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    if not VAPID_PRIVATE_KEY_PATH.exists():
+        private_key = ec.generate_private_key(ec.SECP256R1())
+        pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        VAPID_PRIVATE_KEY_PATH.write_bytes(pem)
+
+    private_pem = VAPID_PRIVATE_KEY_PATH.read_bytes()
+    private_key = serialization.load_pem_private_key(private_pem, password=None)
+    public_key = private_key.public_key().public_numbers()
+    public_bytes = b"\x04" + public_key.x.to_bytes(32, "big") + public_key.y.to_bytes(32, "big")
+    return {
+        "public_key": b64url_encode(public_bytes),
+        "private_key_pem": private_pem.decode("utf-8"),
+        "subject": VAPID_SUBJECT,
+    }
 
 
 def jwt_email(header_value: str | None) -> str | None:
@@ -620,6 +652,59 @@ class DogWalkStore:
             },
         }
 
+    def upsert_subscription(
+        self,
+        *,
+        participant_id: str,
+        endpoint: str,
+        p256dh: str,
+        auth: str,
+    ) -> dict[str, Any]:
+        now = utcnow_iso()
+        with closing(self.connect()) as connection:
+            connection.execute(
+                """
+                INSERT INTO device_subscriptions (participant_id, endpoint, p256dh, auth, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(endpoint) DO UPDATE SET
+                    participant_id=excluded.participant_id,
+                    p256dh=excluded.p256dh,
+                    auth=excluded.auth
+                """,
+                (participant_id, endpoint, p256dh, auth, now),
+            )
+            connection.commit()
+        return {"ok": True, "endpoint": endpoint}
+
+    def delete_subscription(self, endpoint: str) -> dict[str, Any]:
+        with closing(self.connect()) as connection:
+            cursor = connection.execute("DELETE FROM device_subscriptions WHERE endpoint = ?", (endpoint,))
+            connection.commit()
+        return {"ok": True, "removed": cursor.rowcount}
+
+    def get_subscription(self, endpoint: str) -> dict[str, Any] | None:
+        with closing(self.connect()) as connection:
+            row = connection.execute(
+                """
+                SELECT endpoint, p256dh, auth, participant_id, created_at
+                FROM device_subscriptions
+                WHERE endpoint = ?
+                """,
+                (endpoint,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def subscription_count(self, participant_id: str | None = None) -> int:
+        with closing(self.connect()) as connection:
+            if participant_id:
+                row = connection.execute(
+                    "SELECT COUNT(*) AS total FROM device_subscriptions WHERE participant_id = ?",
+                    (participant_id,),
+                ).fetchone()
+            else:
+                row = connection.execute("SELECT COUNT(*) AS total FROM device_subscriptions").fetchone()
+        return int(row["total"]) if row else 0
+
     def upsert_entry(
         self,
         walk_date: str,
@@ -919,6 +1004,69 @@ class DogWalkHandler(BaseHTTPRequestHandler):
         payload["actor"] = self.request_actor()
         return payload
 
+    def push_status_payload(self) -> dict[str, Any]:
+        actor = self.request_actor()
+        material = vapid_material()
+        return {
+            "ok": True,
+            "app": {
+                "version": APP_VERSION,
+                "mode": APP_MODE,
+            },
+            "actor": actor,
+            "vapid_public_key": material["public_key"],
+            "subscriptions": {
+                "total": STORE.subscription_count(),
+                "actor": STORE.subscription_count(actor["id"]) if actor.get("id") else 0,
+            },
+        }
+
+    def send_push_notification(
+        self,
+        *,
+        endpoint: str,
+        title: str,
+        body: str,
+        tag: str,
+        url: str = "/?source=notification",
+    ) -> None:
+        subscription = STORE.get_subscription(endpoint)
+        if not subscription:
+            raise ValueError("Subscription not found.")
+
+        material = vapid_material()
+        payload = json.dumps(
+            {
+                "title": title,
+                "body": body,
+                "tag": tag,
+                "url": url,
+                "icon": f"/icon-192.png?v={APP_VERSION}",
+                "badge": f"/icon-192.png?v={APP_VERSION}",
+            },
+            ensure_ascii=True,
+        )
+
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": subscription["endpoint"],
+                    "keys": {
+                        "p256dh": subscription["p256dh"],
+                        "auth": subscription["auth"],
+                    },
+                },
+                data=payload,
+                vapid_private_key=material["private_key_pem"],
+                vapid_claims={"sub": material["subject"]},
+                ttl=300,
+            )
+        except WebPushException as exc:
+            status_code = getattr(getattr(exc, "response", None), "status_code", None)
+            if status_code in {404, 410}:
+                STORE.delete_subscription(endpoint)
+            raise ValueError(f"Could not send push notification ({status_code or 'unknown'}).") from exc
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path
@@ -952,6 +1100,10 @@ class DogWalkHandler(BaseHTTPRequestHandler):
         if path == "/api/stats":
             range_key = query.get("range", ["90"])[0]
             json_response(self, STORE.stats_payload(range_key=range_key))
+            return
+
+        if path == "/api/push/status":
+            json_response(self, self.push_status_payload())
             return
 
         if path == "/api/reminders/pending":
@@ -1062,6 +1214,47 @@ class DogWalkHandler(BaseHTTPRequestHandler):
 
             if path == "/api/admin/correct-activity":
                 json_response(self, STORE.correct_activity_entries(payload.get("corrections") or []))
+                return
+
+            if path == "/api/push/subscribe":
+                actor = self.request_actor(payload)
+                subscription = payload.get("subscription") or {}
+                keys = subscription.get("keys") or {}
+                endpoint = str(subscription.get("endpoint") or "").strip()
+                p256dh = str(keys.get("p256dh") or "").strip()
+                auth = str(keys.get("auth") or "").strip()
+                if not endpoint or not p256dh or not auth:
+                    raise ValueError("Push subscription is incomplete.")
+                json_response(
+                    self,
+                    STORE.upsert_subscription(
+                        participant_id=actor["id"],
+                        endpoint=endpoint,
+                        p256dh=p256dh,
+                        auth=auth,
+                    ),
+                )
+                return
+
+            if path == "/api/push/unsubscribe":
+                endpoint = str((payload.get("subscription") or {}).get("endpoint") or payload.get("endpoint") or "").strip()
+                if not endpoint:
+                    raise ValueError("Subscription endpoint is required.")
+                json_response(self, STORE.delete_subscription(endpoint))
+                return
+
+            if path == "/api/push/test":
+                actor = self.request_actor(payload)
+                endpoint = str((payload.get("subscription") or {}).get("endpoint") or payload.get("endpoint") or "").strip()
+                if not endpoint:
+                    raise ValueError("Subscription endpoint is required.")
+                self.send_push_notification(
+                    endpoint=endpoint,
+                    title="Chewie Walk Tracker",
+                    body=f"{actor['name']} sent a test notification for this device.",
+                    tag="chewie-test",
+                )
+                json_response(self, {"ok": True, "sent": 1})
                 return
         except KeyError as exc:
             json_response(self, {"ok": False, "error": f"Missing field: {exc.args[0]}"}, status=400)

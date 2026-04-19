@@ -12,6 +12,16 @@ const state = {
   app: null,
   actor: null,
   browserActor: null,
+  push: {
+    loaded: false,
+    supported: false,
+    permission: "default",
+    subscribed: false,
+    endpoint: null,
+    publicKey: null,
+    actorCount: 0,
+    totalCount: 0,
+  },
   activityLoaded: false,
   statsRange: "90",
   statsLoaded: false,
@@ -40,6 +50,9 @@ const statsRangeSelect = document.getElementById("statsRangeSelect");
 const balanceChartCanvas = document.getElementById("balanceChart");
 const cumulativeChartCanvas = document.getElementById("cumulativeChart");
 const monthlyChartCanvas = document.getElementById("monthlyChart");
+const pushStatusLabel = document.getElementById("pushStatusLabel");
+const enableNotificationsButton = document.getElementById("enableNotificationsButton");
+const testNotificationButton = document.getElementById("testNotificationButton");
 
 menuButton.addEventListener("click", toggleDrawer);
 document.querySelectorAll(".drawer-link").forEach((button) => {
@@ -55,6 +68,8 @@ statsRangeSelect.addEventListener("change", async () => {
     await loadStats(true);
   }
 });
+enableNotificationsButton.addEventListener("click", enableNotifications);
+testNotificationButton.addEventListener("click", sendTestNotification);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register(`/sw.js?v=${window.__ASSET_VERSION__ || "dev"}`));
@@ -193,6 +208,162 @@ async function hydrateBrowserActor(force = false) {
   }
 
   return state.browserActor;
+}
+
+function browserCanPush() {
+  return window.isSecureContext && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replaceAll("-", "+").replaceAll("_", "/");
+  const rawData = atob(base64);
+  return Uint8Array.from(rawData, (char) => char.charCodeAt(0));
+}
+
+async function currentPushSubscription() {
+  if (!browserCanPush()) {
+    return null;
+  }
+  const registration = await navigator.serviceWorker.ready;
+  return registration.pushManager.getSubscription();
+}
+
+async function loadPushStatus(force = false) {
+  if (state.push.loaded && !force) {
+    renderPushStatus();
+    return;
+  }
+
+  const response = await fetch("/api/push/status", { cache: "no-store" });
+  const payload = await response.json();
+  if (!payload.ok) {
+    throw new Error(payload.error || "Could not load notification settings.");
+  }
+
+  const subscription = await currentPushSubscription();
+  state.push = {
+    loaded: true,
+    supported: browserCanPush(),
+    secureContext: window.isSecureContext,
+    permission: browserCanPush() ? Notification.permission : "unsupported",
+    subscribed: Boolean(subscription),
+    endpoint: subscription?.endpoint || null,
+    publicKey: payload.vapid_public_key,
+    actorCount: payload.subscriptions?.actor || 0,
+    totalCount: payload.subscriptions?.total || 0,
+  };
+  renderPushStatus();
+}
+
+function renderPushStatus(messageOverride = null) {
+  const push = state.push;
+  if (messageOverride) {
+    pushStatusLabel.textContent = messageOverride;
+  } else if (!push.supported) {
+    pushStatusLabel.textContent = push.secureContext === false
+      ? "Notifications need the HTTPS / Cloudflare version of this app."
+      : "This browser does not support web push notifications.";
+  } else if (push.permission === "denied") {
+    pushStatusLabel.textContent = "Notifications are blocked in this browser for this app.";
+  } else if (push.subscribed) {
+    pushStatusLabel.textContent = "Notifications are enabled on this device.";
+  } else if (push.permission === "granted") {
+    pushStatusLabel.textContent = "Permission is granted. Finish setup for this device.";
+  } else {
+    pushStatusLabel.textContent = "Notifications are off on this device.";
+  }
+
+  const canEnable = push.supported && push.permission !== "denied" && !push.subscribed;
+  enableNotificationsButton.classList.toggle("is-hidden", !canEnable);
+  enableNotificationsButton.disabled = !canEnable;
+  testNotificationButton.classList.toggle("is-hidden", !push.subscribed);
+}
+
+async function enableNotifications() {
+  try {
+    await hydrateBrowserActor(true);
+    await loadPushStatus(true);
+
+    if (!browserCanPush()) {
+      renderPushStatus("Notifications need the HTTPS / Cloudflare version of this app.");
+      return;
+    }
+
+    const permission = Notification.permission === "granted"
+      ? "granted"
+      : await Notification.requestPermission();
+    if (permission !== "granted") {
+      state.push.permission = permission;
+      renderPushStatus();
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.ready;
+    const existingSubscription = await registration.pushManager.getSubscription();
+    const subscription = existingSubscription || await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(state.push.publicKey),
+    });
+
+    const response = await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        actor_email: state.browserActor?.email || null,
+        actor_probe: {
+          email: state.browserActor?.email || null,
+          source: state.browserActor?.source || null,
+          resolved: Boolean(state.browserActor),
+        },
+        app_probe: appProbe(),
+      }),
+    });
+    const payload = await response.json();
+    if (!payload.ok) {
+      throw new Error(payload.error || "Could not enable notifications.");
+    }
+
+    await loadPushStatus(true);
+    renderPushStatus("Notifications are enabled on this device.");
+  } catch (error) {
+    console.error("Enable notifications failed", error);
+    renderPushStatus(error.message || "Could not enable notifications.");
+  }
+}
+
+async function sendTestNotification() {
+  try {
+    const subscription = await currentPushSubscription();
+    if (!subscription) {
+      renderPushStatus("Enable notifications on this device first.");
+      return;
+    }
+    await hydrateBrowserActor(true);
+    const response = await fetch("/api/push/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        endpoint: subscription.endpoint,
+        actor_email: state.browserActor?.email || null,
+        actor_probe: {
+          email: state.browserActor?.email || null,
+          source: state.browserActor?.source || null,
+          resolved: Boolean(state.browserActor),
+        },
+        app_probe: appProbe(),
+      }),
+    });
+    const payload = await response.json();
+    if (!payload.ok) {
+      throw new Error(payload.error || "Could not send a test notification.");
+    }
+    renderPushStatus("Test notification sent to this device.");
+  } catch (error) {
+    console.error("Test notification failed", error);
+    renderPushStatus(error.message || "Could not send a test notification.");
+  }
 }
 
 function actorFromEmail(email) {
@@ -771,6 +942,12 @@ function activateTab(tabId) {
     loadStats().catch((error) => {
       console.error("Could not load stats", error);
       balanceChartCanvas.closest(".stats-chart-grid").innerHTML = '<p class="empty-state">Could not load stats.</p>';
+    });
+  }
+  if (tabId === "profile") {
+    loadPushStatus().catch((error) => {
+      console.error("Could not load notification status", error);
+      renderPushStatus(error.message || "Could not load notification status.");
     });
   }
 }

@@ -312,6 +312,31 @@ h2 {
   color: var(--muted);
 }
 
+.profile-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.profile-block {
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(29, 32, 27, 0.07);
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.push-status {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .stats-header {
   display: flex;
   justify-content: space-between;
