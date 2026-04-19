@@ -182,7 +182,7 @@ async function hydrateBrowserActor(force = false) {
       return state.browserActor;
     }
     const payload = await response.json();
-    const email = String(payload?.email || "").trim().toLowerCase();
+    const email = canonicalEmail(payload?.email);
     const actor = actorFromEmail(email);
     if (actor) {
       state.browserActor = actor;
@@ -196,13 +196,28 @@ async function hydrateBrowserActor(force = false) {
 }
 
 function actorFromEmail(email) {
-  if (email === "francois.pesqui@gmail.com") {
+  if (canonicalEmail(email) === canonicalEmail("francois.pesqui@gmail.com")) {
     return { id: "frank", name: "Frank", email, source: "cloudflare_identity_endpoint" };
   }
-  if (email === "kurt.zuo@gmail.com") {
+  if (canonicalEmail(email) === canonicalEmail("kurt.zuo@gmail.com")) {
     return { id: "kurt", name: "Kurt", email, source: "cloudflare_identity_endpoint" };
   }
   return null;
+}
+
+function canonicalEmail(value) {
+  const email = String(value || "").trim().toLowerCase();
+  const atIndex = email.indexOf("@");
+  if (atIndex === -1) {
+    return email;
+  }
+  let local = email.slice(0, atIndex);
+  let domain = email.slice(atIndex + 1);
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    local = local.split("+", 1)[0].replaceAll(".", "");
+    domain = "gmail.com";
+  }
+  return `${local}@${domain}`;
 }
 
 function appProbe() {

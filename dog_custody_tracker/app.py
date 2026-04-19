@@ -56,9 +56,20 @@ PARTICIPANTS = (
     },
 )
 
+def canonical_email(value: str | None) -> str:
+    email = (value or "").strip().lower()
+    if "@" not in email:
+        return email
+    local_part, domain = email.split("@", 1)
+    if domain in {"gmail.com", "googlemail.com"}:
+        local_part = local_part.split("+", 1)[0].replace(".", "")
+        domain = "gmail.com"
+    return f"{local_part}@{domain}"
+
+
 ACTOR_EMAILS = {
-    "francois.pesqui@gmail.com": {"id": "frank", "name": "Frank"},
-    "kurt.zuo@gmail.com": {"id": "kurt", "name": "Kurt"},
+    canonical_email("francois.pesqui@gmail.com"): {"id": "frank", "name": "Frank"},
+    canonical_email("kurt.zuo@gmail.com"): {"id": "kurt", "name": "Kurt"},
 }
 
 
@@ -99,7 +110,7 @@ def jwt_email(header_value: str | None) -> str | None:
         return None
     email = payload.get("email")
     if isinstance(email, str) and email.strip():
-        return email.strip().lower()
+        return canonical_email(email)
     return None
 
 
@@ -805,7 +816,7 @@ class DogWalkHandler(BaseHTTPRequestHandler):
         }
 
     def request_actor(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-        claimed_email = str((payload or {}).get("actor_email") or "").strip().lower()
+        claimed_email = canonical_email((payload or {}).get("actor_email"))
         actor = ACTOR_EMAILS.get(claimed_email)
         if actor:
             return {
@@ -815,7 +826,7 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                 "source": "client_claim",
             }
 
-        email = (self.headers.get("Cf-Access-Authenticated-User-Email") or "").strip().lower()
+        email = canonical_email(self.headers.get("Cf-Access-Authenticated-User-Email"))
         email_source = "cloudflare_access_header"
         if not email:
             email = jwt_email(self.headers.get("Cf-Access-Jwt-Assertion"))
