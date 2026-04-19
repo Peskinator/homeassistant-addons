@@ -449,6 +449,62 @@ class DogWalkStore:
                 break
         return items
 
+    def correct_activity_entries(self, corrections: list[dict[str, Any]]) -> dict[str, Any]:
+        if not self.activity_log_path.exists():
+            raise ValueError("Activity log does not exist yet.")
+
+        normalized_corrections = []
+        for correction in corrections:
+            timestamp = str(correction.get("timestamp") or "").strip()
+            walk_date = str(correction.get("walk_date") or "").strip()
+            actor_id = str(correction.get("actor_id") or "").strip().lower()
+            actor = next((item for item in PARTICIPANTS if item["id"] == actor_id), None)
+            if not timestamp or not walk_date or not actor:
+                raise ValueError("Each correction needs timestamp, walk_date, and a valid actor_id.")
+            normalized_corrections.append(
+                {
+                    "timestamp": timestamp,
+                    "walk_date": walk_date,
+                    "actor_id": actor["id"],
+                    "actor_name": actor["display_name"],
+                    "actor_email": correction.get("actor_email"),
+                    "actor_source": correction.get("actor_source") or "manual_correction",
+                }
+            )
+
+        rows = []
+        updated = 0
+        with self.activity_lock:
+            for raw_line in self.activity_log_path.read_text(encoding="utf-8").splitlines():
+                if not raw_line.strip():
+                    continue
+                try:
+                    item = json.loads(raw_line)
+                except json.JSONDecodeError:
+                    rows.append(raw_line)
+                    continue
+
+                match = next(
+                    (
+                        correction
+                        for correction in normalized_corrections
+                        if item.get("timestamp") == correction["timestamp"]
+                        and item.get("walk_date") == correction["walk_date"]
+                    ),
+                    None,
+                )
+                if match:
+                    item["actor_id"] = match["actor_id"]
+                    item["actor_name"] = match["actor_name"]
+                    item["actor_email"] = match["actor_email"]
+                    item["actor_source"] = match["actor_source"]
+                    updated += 1
+                rows.append(json.dumps(item, ensure_ascii=True))
+
+            self.activity_log_path.write_text("\n".join(rows) + ("\n" if rows else ""), encoding="utf-8")
+
+        return {"ok": True, "updated": updated}
+
     def stats_payload(self, range_key: str = "90") -> dict[str, Any]:
         if range_key not in STATS_RANGES:
             raise ValueError("Unsupported stats range.")
@@ -1002,6 +1058,10 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                     self,
                     STORE.import_google_sheet(payload["sheet_url"], gid=payload.get("gid", "0")),
                 )
+                return
+
+            if path == "/api/admin/correct-activity":
+                json_response(self, STORE.correct_activity_entries(payload.get("corrections") or []))
                 return
         except KeyError as exc:
             json_response(self, {"ok": False, "error": f"Missing field: {exc.args[0]}"}, status=400)
