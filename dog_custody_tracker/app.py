@@ -373,7 +373,6 @@ class DogWalkStore:
         month_start, next_month = month_bounds(month_key)
         entry_start = parse_date(range_start).isoformat() if range_start else month_start.isoformat()
         entry_end = parse_date(range_end).isoformat() if range_end else next_month.isoformat()
-        today_iso = date.today().isoformat()
         with closing(self.connect()) as connection:
             month_rows = connection.execute(
                 """
@@ -388,12 +387,9 @@ class DogWalkStore:
                 """
                 SELECT participant_id, COUNT(*) AS total
                 FROM walk_entries
-                WHERE walk_date <= ?
                 GROUP BY participant_id
                 ORDER BY participant_id
                 """
-                ,
-                (today_iso,),
             ).fetchall()
 
         totals = {participant["id"]: 0 for participant in PARTICIPANTS}
@@ -410,12 +406,12 @@ class DogWalkStore:
         entries = []
         for row in month_rows:
             item = dict(row)
-            item["is_future"] = row["walk_date"] > today_iso
+            item["is_future"] = row["walk_date"] > date.today().isoformat()
             entries.append(item)
 
         return {
             "month": month_key,
-            "today": today_iso,
+            "today": date.today().isoformat(),
             "participants": self.participants(),
             "entries": entries,
             "totals": totals,
@@ -652,6 +648,14 @@ class DogWalkStore:
                 """,
                 (range_start_iso, today_iso),
             ).fetchall()
+            assigned_total_rows = connection.execute(
+                """
+                SELECT participant_id, COUNT(*) AS total
+                FROM walk_entries
+                GROUP BY participant_id
+                ORDER BY participant_id
+                """
+            ).fetchall()
 
         participants = self.participants()
         participant_ids = [participant["id"] for participant in participants]
@@ -694,6 +698,10 @@ class DogWalkStore:
         for row in monthly_rows:
             monthly_totals[row["participant_id"]][row["month_key"]] = int(row["total"])
 
+        assigned_totals = {participant_id: 0 for participant_id in participant_ids}
+        for row in assigned_total_rows:
+            assigned_totals[row["participant_id"]] = int(row["total"])
+
         biggest_frank_lead = max(balance_series) if balance_series else 0
         biggest_kurt_lead = min(balance_series) if balance_series else 0
 
@@ -709,10 +717,14 @@ class DogWalkStore:
             "monthly_labels": monthly_labels,
             "monthly_totals": monthly_totals,
             "totals_in_range": totals_in_range,
+            "assigned_totals": assigned_totals,
             "summary": {
                 "current_balance": balance_series[-1] if balance_series else 0,
                 "frank_total": totals_in_range.get("frank", 0),
                 "kurt_total": totals_in_range.get("kurt", 0),
+                "assigned_balance": assigned_totals.get("frank", 0) - assigned_totals.get("kurt", 0),
+                "assigned_frank_total": assigned_totals.get("frank", 0),
+                "assigned_kurt_total": assigned_totals.get("kurt", 0),
                 "biggest_frank_lead": biggest_frank_lead,
                 "biggest_kurt_lead": abs(biggest_kurt_lead),
             },

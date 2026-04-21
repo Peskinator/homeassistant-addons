@@ -3,7 +3,7 @@
   "name": "Chewie Walk Tracker",
   "short_name": "Chewie Walks",
   "description": "Track daily dog walks fairly between Frank and Kurt.",
-  "start_url": "/?source=pwa&v=0.1.50",
+  "start_url": "/?source=pwa&v=0.1.51",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
@@ -12,13 +12,13 @@
   "theme_color": "#f7f2e8",
   "icons": [
     {
-      "src": "/icon-192.png?v=0.1.50",
+      "src": "/icon-192.png?v=0.1.51",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png?v=0.1.50",
+      "src": "/icon-512.png?v=0.1.51",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

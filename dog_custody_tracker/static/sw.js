@@ -1,4 +1,4 @@
-const ASSET_VERSION = "0.1.50";
+const ASSET_VERSION = "0.1.51";
 const CACHE_NAME = `chewie-walk-tracker-${ASSET_VERSION}`;
 const APP_SHELL = [
   "/",
