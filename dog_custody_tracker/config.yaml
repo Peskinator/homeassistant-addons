@@ -1,6 +1,6 @@
 name: "Dog Custody Tracker"
 slug: "dog_custody_tracker"
-version: "0.1.47"
+version: "0.1.48"
 description: >
   Shared dog custody tracker with a mobile-first calendar UI, profile photos, and persistent Home Assistant hosting.
 url: "https://github.com/Peskinator/homeassistant-addons/tree/main/dog_custody_tracker"

@@ -161,12 +161,15 @@ function initializeCalendar() {
 }
 
 async function loadMonth(monthKey = state.currentMonth, rangeStart = null, rangeEnd = null) {
+  const effectiveRange = (!rangeStart && !rangeEnd) ? currentCalendarRange() : null;
   const params = new URLSearchParams({ month: monthKey });
-  if (rangeStart) {
-    params.set("range_start", rangeStart);
+  const resolvedRangeStart = rangeStart || effectiveRange?.start || null;
+  const resolvedRangeEnd = rangeEnd || effectiveRange?.end || null;
+  if (resolvedRangeStart) {
+    params.set("range_start", resolvedRangeStart);
   }
-  if (rangeEnd) {
-    params.set("range_end", rangeEnd);
+  if (resolvedRangeEnd) {
+    params.set("range_end", resolvedRangeEnd);
   }
   const response = await fetch(`/api/bootstrap?${params.toString()}`);
   const payload = await response.json();
