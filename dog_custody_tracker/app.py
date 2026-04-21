@@ -124,7 +124,7 @@ def vapid_material() -> dict[str, str]:
     public_bytes = b"\x04" + public_key.x.to_bytes(32, "big") + public_key.y.to_bytes(32, "big")
     return {
         "public_key": b64url_encode(public_bytes),
-        "private_key_pem": private_pem.decode("utf-8"),
+        "private_key_path": str(VAPID_PRIVATE_KEY_PATH),
         "subject": VAPID_SUBJECT,
     }
 
@@ -1057,7 +1057,7 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                     },
                 },
                 data=payload,
-                vapid_private_key=material["private_key_pem"],
+                vapid_private_key=material["private_key_path"],
                 vapid_claims={"sub": material["subject"]},
                 ttl=300,
             )
