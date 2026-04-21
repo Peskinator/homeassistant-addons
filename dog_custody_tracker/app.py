@@ -31,6 +31,7 @@ DATA_DIR = Path(os.environ.get("DOG_WALK_DATA_DIR") or str(DEFAULT_DATA_DIR))
 DB_PATH = DATA_DIR / "dog_walks.sqlite3"
 ACTIVITY_LOG_PATH = DATA_DIR / "activity.jsonl"
 WRITE_DEBUG_LOG_PATH = DATA_DIR / "write_debug.jsonl"
+PUSH_DEBUG_LOG_PATH = DATA_DIR / "push_debug.jsonl"
 VAPID_PRIVATE_KEY_PATH = DATA_DIR / "vapid_private_key.pem"
 DEFAULT_PORT = 8420
 VAPID_SUBJECT = "mailto:francois.pesqui@gmail.com"
@@ -266,8 +267,10 @@ class DogWalkStore:
         self.db_path = db_path
         self.activity_log_path = ACTIVITY_LOG_PATH
         self.write_debug_log_path = WRITE_DEBUG_LOG_PATH
+        self.push_debug_log_path = PUSH_DEBUG_LOG_PATH
         self.activity_lock = threading.Lock()
         self.write_debug_lock = threading.Lock()
+        self.push_debug_lock = threading.Lock()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
@@ -504,6 +507,29 @@ class DogWalkStore:
         if not self.write_debug_log_path.exists():
             return []
         lines = self.write_debug_log_path.read_text(encoding="utf-8").splitlines()
+        items: list[dict[str, Any]] = []
+        for raw_line in reversed(lines):
+            raw_line = raw_line.strip()
+            if not raw_line:
+                continue
+            try:
+                items.append(json.loads(raw_line))
+            except json.JSONDecodeError:
+                continue
+            if len(items) >= limit:
+                break
+        return items
+
+    def append_push_debug(self, payload: dict[str, Any]) -> None:
+        self.push_debug_log_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.push_debug_lock:
+            with self.push_debug_log_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(payload, ensure_ascii=True) + "\n")
+
+    def recent_push_debug(self, limit: int = 80) -> list[dict[str, Any]]:
+        if not self.push_debug_log_path.exists():
+            return []
+        lines = self.push_debug_log_path.read_text(encoding="utf-8").splitlines()
         items: list[dict[str, Any]] = []
         for raw_line in reversed(lines):
             raw_line = raw_line.strip()
@@ -1047,6 +1073,7 @@ class DogWalkHandler(BaseHTTPRequestHandler):
         subscriptions = STORE.subscriptions()
         sent = 0
         failed = 0
+        failures: list[dict[str, Any]] = []
         for subscription in subscriptions:
             try:
                 self.send_push_notification(
@@ -1057,8 +1084,27 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                     url="/?source=notification",
                 )
                 sent += 1
-            except ValueError:
+            except ValueError as exc:
                 failed += 1
+                failures.append(
+                    {
+                        "endpoint": subscription["endpoint"],
+                        "participant_id": subscription.get("participant_id"),
+                        "error": str(exc),
+                    }
+                )
+
+        debug_payload = {
+            "timestamp": utcnow_iso(),
+            "type": "activity_notification",
+            "actor": actor,
+            "summary": summary,
+            "subscription_total": len(subscriptions),
+            "sent": sent,
+            "failed": failed,
+            "failures": failures,
+        }
+        STORE.append_push_debug(debug_payload)
 
         return {
             "ok": True,
@@ -1219,7 +1265,16 @@ class DogWalkHandler(BaseHTTPRequestHandler):
             status_code = getattr(getattr(exc, "response", None), "status_code", None)
             if status_code in {404, 410}:
                 STORE.delete_subscription(endpoint)
-            raise ValueError(f"Could not send push notification ({status_code or 'unknown'}).") from exc
+            error_message = f"Could not send push notification ({status_code or 'unknown'})."
+            response = getattr(exc, "response", None)
+            if response is not None:
+                try:
+                    response_body = response.text
+                except Exception:
+                    response_body = None
+                if response_body:
+                    error_message = f"{error_message} {response_body}"
+            raise ValueError(error_message) from exc
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
@@ -1249,6 +1304,11 @@ class DogWalkHandler(BaseHTTPRequestHandler):
         if path == "/api/admin/write-debug":
             limit = int(query.get("limit", ["80"])[0])
             json_response(self, {"ok": True, "items": STORE.recent_write_debug(limit=limit)})
+            return
+
+        if path == "/api/admin/push-debug":
+            limit = int(query.get("limit", ["80"])[0])
+            json_response(self, {"ok": True, "items": STORE.recent_push_debug(limit=limit)})
             return
 
         if path == "/api/stats":
