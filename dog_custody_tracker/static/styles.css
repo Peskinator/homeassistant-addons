@@ -520,7 +520,7 @@ h2 {
 }
 
 .fc .fc-day-today {
-  background: rgba(255, 214, 102, 0.16) !important;
+  background: rgba(255, 214, 102, 0.24) !important;
 }
 
 .fc .fc-day-sat,
@@ -534,9 +534,18 @@ h2 {
   font-weight: 600;
 }
 
+.fc .fc-day-today .fc-daygrid-day-frame {
+  box-shadow: inset 0 0 0 3px rgba(192, 124, 0, 0.52);
+}
+
 .fc .fc-day-today .fc-daygrid-day-number {
   color: #7a4b00;
-  font-weight: 700;
+  font-weight: 800;
+  background: rgba(255, 233, 181, 0.96);
+  border-radius: 999px;
+  padding: 5px 10px;
+  margin: 4px 4px 0 0;
+  box-shadow: 0 6px 16px rgba(192, 124, 0, 0.18);
 }
 
 .fc .fc-daygrid-event {

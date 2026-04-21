@@ -973,7 +973,7 @@ function dayCellClasses(dateValue) {
     return [];
   }
   const classes = ["has-assignment", `has-assignment-${entry.participant_id}`];
-  if (entry.source === "planned") {
+  if (state.today && isoDate > state.today) {
     classes.push("is-planned");
   }
   return classes;
