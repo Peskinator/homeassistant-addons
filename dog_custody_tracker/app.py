@@ -103,6 +103,42 @@ def utcnow_iso() -> str:
     return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
 
 
+def format_short_date(value: str) -> str:
+    return parse_date(value).strftime("%b %d").replace(" 0", " ")
+
+
+def daterange_dates(start_date: str, end_date: str) -> list[str]:
+    start = parse_date(start_date)
+    end = parse_date(end_date)
+    if end < start:
+        raise ValueError("End date must be on or after start date.")
+    current = start
+    items: list[str] = []
+    while current <= end:
+        items.append(current.isoformat())
+        current += timedelta(days=1)
+    return items
+
+
+def summarize_dates(dates: list[str]) -> str:
+    normalized = sorted({parse_date(item).isoformat() for item in dates})
+    if not normalized:
+        return "selected days"
+    if len(normalized) == 1:
+        return format_short_date(normalized[0])
+    start = parse_date(normalized[0])
+    end = parse_date(normalized[-1])
+    if (end - start).days + 1 == len(normalized):
+        if start.year == end.year and start.month == end.month:
+            return f"{start.strftime('%b')} {start.day}\u2013{end.day}"
+        if start.year == end.year:
+            return f"{start.strftime('%b')} {start.day}\u2013{end.strftime('%b')} {end.day}"
+        return f"{start.strftime('%b')} {start.day}, {start.year}\u2013{end.strftime('%b')} {end.day}, {end.year}"
+    if len(normalized) == 2:
+        return f"{format_short_date(normalized[0])} and {format_short_date(normalized[1])}"
+    return f"{format_short_date(normalized[0])}, {format_short_date(normalized[1])}, +{len(normalized) - 2} more"
+
+
 def b64url_encode(value: bytes) -> str:
     return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
 
@@ -694,6 +730,17 @@ class DogWalkStore:
             ).fetchone()
         return dict(row) if row else None
 
+    def subscriptions(self) -> list[dict[str, Any]]:
+        with closing(self.connect()) as connection:
+            rows = connection.execute(
+                """
+                SELECT endpoint, p256dh, auth, participant_id, created_at
+                FROM device_subscriptions
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def subscription_count(self, participant_id: str | None = None) -> int:
         with closing(self.connect()) as connection:
             if participant_id:
@@ -913,6 +960,113 @@ STORE = DogWalkStore(DB_PATH)
 class DogWalkHandler(BaseHTTPRequestHandler):
     server_version = "DogWalkTracker/0.1"
 
+    def participant_name(self, participant_id: str | None) -> str:
+        participant = next((item for item in PARTICIPANTS if item["id"] == participant_id), None)
+        return participant["display_name"] if participant else "Unknown"
+
+    def snapshot_entries(self, dates: list[str]) -> dict[str, dict[str, Any] | None]:
+        return {walk_date: STORE.get_entry(walk_date) for walk_date in dates}
+
+    def describe_change_batch(
+        self,
+        *,
+        actor: dict[str, Any],
+        before_map: dict[str, dict[str, Any] | None],
+        after_map: dict[str, dict[str, Any] | None],
+    ) -> dict[str, Any] | None:
+        changed_dates = [
+            walk_date
+            for walk_date in sorted(before_map.keys())
+            if (before_map.get(walk_date) or {}).get("participant_id") != (after_map.get(walk_date) or {}).get("participant_id")
+            or (before_map.get(walk_date) or {}).get("source") != (after_map.get(walk_date) or {}).get("source")
+        ]
+        if not changed_dates:
+            return None
+
+        additions = [
+            walk_date
+            for walk_date in changed_dates
+            if before_map.get(walk_date) is None and after_map.get(walk_date) is not None
+        ]
+        removals = [
+            walk_date
+            for walk_date in changed_dates
+            if before_map.get(walk_date) is not None and after_map.get(walk_date) is None
+        ]
+        swaps = [
+            walk_date
+            for walk_date in changed_dates
+            if before_map.get(walk_date) is not None and after_map.get(walk_date) is not None
+        ]
+
+        title = f"{actor['name']} updated Chewie Walk Tracker"
+
+        if additions and not removals and not swaps:
+            after_ids = {(after_map[walk_date] or {}).get("participant_id") for walk_date in additions}
+            if len(after_ids) == 1:
+                participant_name = self.participant_name(next(iter(after_ids)))
+                body = f"Added {summarize_dates(additions)} for {participant_name}."
+            else:
+                body = f"Added {summarize_dates(additions)}."
+            return {"title": title, "body": body, "dates": changed_dates}
+
+        if removals and not additions and not swaps:
+            before_ids = {(before_map[walk_date] or {}).get("participant_id") for walk_date in removals}
+            if len(before_ids) == 1:
+                participant_name = self.participant_name(next(iter(before_ids)))
+                body = f"Removed {summarize_dates(removals)} from {participant_name}."
+            else:
+                body = f"Removed {summarize_dates(removals)}."
+            return {"title": title, "body": body, "dates": changed_dates}
+
+        if swaps and not additions and not removals:
+            before_ids = {(before_map[walk_date] or {}).get("participant_id") for walk_date in swaps}
+            after_ids = {(after_map[walk_date] or {}).get("participant_id") for walk_date in swaps}
+            if len(before_ids) == 1 and len(after_ids) == 1:
+                before_name = self.participant_name(next(iter(before_ids)))
+                after_name = self.participant_name(next(iter(after_ids)))
+                body = f"Changed {summarize_dates(swaps)} from {before_name} to {after_name}."
+            else:
+                body = f"Updated {summarize_dates(swaps)}."
+            return {"title": title, "body": body, "dates": changed_dates}
+
+        body = f"Updated {summarize_dates(changed_dates)}."
+        return {"title": title, "body": body, "dates": changed_dates}
+
+    def notify_subscribers_of_changes(
+        self,
+        *,
+        actor: dict[str, Any],
+        before_map: dict[str, dict[str, Any] | None],
+        after_map: dict[str, dict[str, Any] | None],
+    ) -> dict[str, Any] | None:
+        summary = self.describe_change_batch(actor=actor, before_map=before_map, after_map=after_map)
+        if not summary:
+            return None
+
+        subscriptions = STORE.subscriptions()
+        sent = 0
+        failed = 0
+        for subscription in subscriptions:
+            try:
+                self.send_push_notification(
+                    endpoint=subscription["endpoint"],
+                    title=summary["title"],
+                    body=summary["body"],
+                    tag="chewie-activity",
+                    url="/?source=notification",
+                )
+                sent += 1
+            except ValueError:
+                failed += 1
+
+        return {
+            "ok": True,
+            "summary": summary,
+            "sent": sent,
+            "failed": failed,
+        }
+
     def request_debug_snapshot(
         self,
         *,
@@ -1130,23 +1284,33 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                 notes = payload.get("notes")
                 source = payload.get("source", "manual")
                 actor = self.request_actor(payload)
+                target_dates = [walk_date]
+                before_map = self.snapshot_entries(target_dates)
                 STORE.append_write_debug(
                     self.request_debug_snapshot(
                         payload=payload,
                         resolved_actor=actor,
                         action="set_single",
-                        target_dates=[walk_date],
+                        target_dates=target_dates,
                     )
                 )
+                result = STORE.upsert_entry(
+                    walk_date,
+                    participant_id,
+                    source=source,
+                    notes=notes,
+                    actor=actor,
+                )
+                after_map = self.snapshot_entries(target_dates)
+                notification = self.notify_subscribers_of_changes(
+                    actor=actor,
+                    before_map=before_map,
+                    after_map=after_map,
+                )
+                response_payload = {**result, "notification": notification}
                 json_response(
                     self,
-                    STORE.upsert_entry(
-                        walk_date,
-                        participant_id,
-                        source=source,
-                        notes=notes,
-                        actor=actor,
-                    ),
+                    response_payload,
                 )
                 return
 
@@ -1154,44 +1318,62 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                 actor = self.request_actor(payload)
                 start_date = payload["start_date"]
                 end_date = payload["end_date"]
+                target_dates = daterange_dates(start_date, end_date)
+                before_map = self.snapshot_entries(target_dates)
                 STORE.append_write_debug(
                     self.request_debug_snapshot(
                         payload=payload,
                         resolved_actor=actor,
                         action="bulk_plan",
-                        target_dates=[start_date, end_date],
+                        target_dates=target_dates,
                     )
+                )
+                result = STORE.bulk_plan(
+                    start_date=start_date,
+                    end_date=end_date,
+                    participant_id=payload["participant_id"],
+                    notes=payload.get("notes"),
+                    actor=actor,
+                )
+                after_map = self.snapshot_entries(target_dates)
+                notification = self.notify_subscribers_of_changes(
+                    actor=actor,
+                    before_map=before_map,
+                    after_map=after_map,
                 )
                 json_response(
                     self,
-                    STORE.bulk_plan(
-                        start_date=start_date,
-                        end_date=end_date,
-                        participant_id=payload["participant_id"],
-                        notes=payload.get("notes"),
-                        actor=actor,
-                    ),
+                    {**result, "notification": notification},
                 )
                 return
 
             if path == "/api/entries/assign-dates":
                 actor = self.request_actor(payload)
+                target_dates = [parse_date(item).isoformat() for item in list(payload.get("dates") or [])]
+                before_map = self.snapshot_entries(target_dates)
                 STORE.append_write_debug(
                     self.request_debug_snapshot(
                         payload=payload,
                         resolved_actor=actor,
                         action="assign_dates",
-                        target_dates=list(payload.get("dates") or []),
+                        target_dates=target_dates,
                     )
+                )
+                result = STORE.assign_dates(
+                    dates=payload["dates"],
+                    participant_id=payload["participant_id"],
+                    notes=payload.get("notes"),
+                    actor=actor,
+                )
+                after_map = self.snapshot_entries(target_dates)
+                notification = self.notify_subscribers_of_changes(
+                    actor=actor,
+                    before_map=before_map,
+                    after_map=after_map,
                 )
                 json_response(
                     self,
-                    STORE.assign_dates(
-                        dates=payload["dates"],
-                        participant_id=payload["participant_id"],
-                        notes=payload.get("notes"),
-                        actor=actor,
-                    ),
+                    {**result, "notification": notification},
                 )
                 return
 
@@ -1285,15 +1467,24 @@ class DogWalkHandler(BaseHTTPRequestHandler):
                     json_response(self, {"ok": False, "error": "Invalid JSON body."}, status=400)
                     return
             actor = self.request_actor(payload)
+            target_dates = [walk_date]
+            before_map = self.snapshot_entries(target_dates)
             STORE.append_write_debug(
                 self.request_debug_snapshot(
                     payload=payload,
                     resolved_actor=actor,
                     action="clear",
-                    target_dates=[walk_date],
+                    target_dates=target_dates,
                 )
             )
-            json_response(self, STORE.clear_entry(walk_date, actor=actor))
+            result = STORE.clear_entry(walk_date, actor=actor)
+            after_map = self.snapshot_entries(target_dates)
+            notification = self.notify_subscribers_of_changes(
+                actor=actor,
+                before_map=before_map,
+                after_map=after_map,
+            )
+            json_response(self, {**result, "notification": notification})
             return
 
         json_response(self, {"ok": False, "error": "Not found."}, status=404)
