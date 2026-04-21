@@ -373,6 +373,7 @@ class DogWalkStore:
         month_start, next_month = month_bounds(month_key)
         entry_start = parse_date(range_start).isoformat() if range_start else month_start.isoformat()
         entry_end = parse_date(range_end).isoformat() if range_end else next_month.isoformat()
+        today_iso = date.today().isoformat()
         with closing(self.connect()) as connection:
             month_rows = connection.execute(
                 """
@@ -387,9 +388,12 @@ class DogWalkStore:
                 """
                 SELECT participant_id, COUNT(*) AS total
                 FROM walk_entries
+                WHERE walk_date <= ?
                 GROUP BY participant_id
                 ORDER BY participant_id
                 """
+                ,
+                (today_iso,),
             ).fetchall()
 
         totals = {participant["id"]: 0 for participant in PARTICIPANTS}
@@ -406,12 +410,12 @@ class DogWalkStore:
         entries = []
         for row in month_rows:
             item = dict(row)
-            item["is_future"] = row["walk_date"] > date.today().isoformat()
+            item["is_future"] = row["walk_date"] > today_iso
             entries.append(item)
 
         return {
             "month": month_key,
-            "today": date.today().isoformat(),
+            "today": today_iso,
             "participants": self.participants(),
             "entries": entries,
             "totals": totals,
