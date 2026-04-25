@@ -1,4 +1,4 @@
-ARG BUILD_UPSTREAM="3.1.0"
+ARG BUILD_UPSTREAM="3.8.0"
 
 FROM ghcr.io/maintainerr/maintainerr:${BUILD_UPSTREAM}
 

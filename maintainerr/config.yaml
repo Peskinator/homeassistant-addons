@@ -1,6 +1,6 @@
 name: "Maintainerr"
 slug: "maintainerr"
-version: "3.1.0-1"
+version: "3.8.0-1"
 description: >
   Rule-based cleanup and collection management for Plex, Jellyfin, and Emby.
 url: "https://github.com/Maintainerr/Maintainerr"
