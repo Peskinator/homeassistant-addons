@@ -1,6 +1,6 @@
 # Agregarr Home Assistant Add-on
 
-This add-on wraps the `bitr8/agregarr:develop` container from the maintained recommender fork and persists its configuration in Home Assistant storage.
+This add-on wraps the stable `bitr8/agregarr` image from the maintained recommender fork and persists its configuration in Home Assistant storage.
 
 ## Exposed port
 
@@ -21,6 +21,6 @@ You can use these from Agregarr when configuring placeholder/root folders for mo
 
 ## Upstream image
 
-This add-on currently tracks `bitr8/agregarr:develop`, matching the maintained fork's recommended Docker image.
+The collection's scheduled updater follows the newest stable `bitr8/agregarr` image tag. It does not follow the upstream `develop` tag.
 
 Existing configuration from the original `agregarr/agregarr:latest` image is compatible because the persisted `/app/config` path is unchanged.
