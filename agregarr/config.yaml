@@ -1,0 +1,39 @@
+name: "Agregarr"
+slug: "agregarr"
+version: "2.9.1"
+description: >
+  Build and maintain Plex collections from list providers, request sources, and media automation tools.
+url: "https://github.com/Peskinator/homeassistant-addons/tree/main/agregarr"
+
+arch:
+  - amd64
+  - aarch64
+
+startup: application
+boot: auto
+backup: hot
+backup_exclude:
+  - plex-base-posters/**
+panel_icon: mdi:animation-play
+
+ports:
+  "7171/tcp": 7171
+ports_description:
+  "7171/tcp": "Agregarr web interface"
+
+webui: "http://[HOST]:[PORT:7171]/"
+watchdog: "tcp://[HOST]:[PORT:7171]"
+
+map:
+  - type: app_config
+    read_only: false
+    path: /app/config
+  - type: media
+    read_only: false
+    path: /media
+  - type: share
+    read_only: false
+    path: /share
+
+image: "bitr8/agregarr"
+legacy: true

@@ -1,0 +1,13 @@
+# Runtime state stays in Home Assistant App storage and backups.
+**/__pycache__/
+*.py[cod]
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.pem
+*.key
+*.crt
+.env
+.env.*

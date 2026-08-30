@@ -1,0 +1,42 @@
+name: "LibraryDownloadarr"
+slug: "librarydownloadarr"
+version: "0.1.0"
+logo: "logo.png"
+description: >
+  A self-hosted web interface to browse and download
+  media from your Plex libraries.
+url: "https://github.com/Peskinator/homeassistant-addons/tree/main/librarydownloadarr"
+
+arch:
+  - amd64
+  # add more if/when the image supports them:
+  # - aarch64
+  # - armv7
+  # - armhf
+  # - i386
+
+startup: application
+boot: auto
+
+# Expose the LibraryDownloadarr web UI
+ports:
+  "5069/tcp": 5069
+ports_description:
+  "5069/tcp": "LibraryDownloadarr web interface"
+
+# Web UI / health checks
+webui: "http://[HOST]:[PORT:5069]/"
+watchdog: "tcp://[HOST]:[PORT:5069]"
+
+# Environment values MUST be strings
+environment:
+  PORT: "5069"
+  LOG_LEVEL: "info"
+  # Use HA's standard persistent volume for add-ons
+  DATABASE_PATH: "/config/librarydownloadarr.db"
+  TZ: "America/New_York"
+
+map:
+  - type: app_config
+    read_only: false
+    path: /config

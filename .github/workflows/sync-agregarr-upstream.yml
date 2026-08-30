@@ -1,0 +1,33 @@
+name: Sync stable Agregarr releases
+
+on:
+  schedule:
+    - cron: "29 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-agregarr-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/sync_agregarr_upstream.py
+      - id: changes
+        run: |
+          if git diff --quiet; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.changes.outputs.changed == 'true'
+        run: docker pull --quiet "bitr8/agregarr:$(sed -n 's/^version: "\(.*\)"$/\1/p' agregarr/config.yaml)"
+      - if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "peskinator-app-updater[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add agregarr/config.yaml agregarr/CHANGELOG.md
+          git diff --cached --check
+          git commit -m "chore(agregarr): update to $(sed -n 's/^version: "\(.*\)"$/\1/p' agregarr/config.yaml)"
+          git push

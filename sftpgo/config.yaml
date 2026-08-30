@@ -1,0 +1,41 @@
+name: "SFTPGo"
+slug: "sftpgo"
+version: "2.7.5-1"
+description: >
+  Self-hosted SFTP server with a web admin UI, backed by persistent Home Assistant storage.
+url: "https://github.com/Peskinator/homeassistant-addons/tree/main/sftpgo"
+
+arch:
+  - amd64
+  - aarch64
+
+startup: services
+boot: auto
+init: false
+backup: hot
+panel_icon: mdi:folder-key-network
+
+ports:
+  "80/tcp": 80
+  "2022/tcp": 2022
+  "8080/tcp": 8080
+  "11443/tcp": 11443
+ports_description:
+  "80/tcp": "ACME HTTP-01 challenge"
+  "2022/tcp": "SFTP server"
+  "8080/tcp": "Admin and web UI"
+  "11443/tcp": "Admin and web UI over HTTPS"
+
+webui: "http://[HOST]:[PORT:8080]/web/admin"
+watchdog: "tcp://[HOST]:[PORT:8080]"
+
+map:
+  - type: app_config
+    read_only: false
+    path: /srv/sftpgo
+  - type: media
+    read_only: false
+    path: /media
+  - type: share
+    read_only: false
+    path: /share
