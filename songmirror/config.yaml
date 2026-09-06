@@ -1,0 +1,36 @@
+name: "SongMirror"
+slug: songmirror
+version: "0.1.0"
+description: >-
+  Self-hosted playlist sync with scheduled, persistent metadata archives.
+url: "https://github.com/Peskinator/homeassistant-addons/tree/main/songmirror"
+arch:
+  - amd64
+
+startup: application
+boot: auto
+init: false
+backup: hot
+
+ports:
+  "8080/tcp": 8083
+ports_description:
+  "8080/tcp": "SongMirror web interface"
+
+webui: "http://[HOST]:[PORT:8080]/"
+watchdog: "http://[HOST]:[PORT:8080]/health"
+
+# SongMirror stores credentials, sync state, and scheduled archive snapshots
+# below /data. Home Assistant persists this app data and includes it in normal
+# app backups; no credentials or backup contents are present in this repository.
+environment:
+  SONGMIRROR_DATA_DIR: "/data"
+  SONGMIRROR_ENV_FILE: "/data/app.env"
+  SPOTIFY_TOKEN_CACHE: "/data/spotify_token_cache"
+  SPOTIFY_TRACKS_CACHE: "/data/spotify_tracks_cache.json"
+  SPOTIFY_CACHE_FILE: "/data/spotify_resolve_cache.json"
+  SONG_CACHE_FILE: "/data/song_cache.db"
+  DOWNLOAD_STATE_FILE: "/data/download_state.json"
+
+options: {}
+schema: {}
