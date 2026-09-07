@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Automated update to upstream container digest `sha256:18d928b886c552833e2fce5f564167982a8e7aac10ca9ab8393824f625891031`.
+
 ## 0.1.0
 
 - Initial public Home Assistant App wrapper for SongMirror.
