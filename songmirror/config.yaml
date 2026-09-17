@@ -1,6 +1,6 @@
 name: "SongMirror"
 slug: songmirror
-version: "0.1.6"
+version: "0.1.7"
 description: >-
   Self-hosted playlist sync with scheduled, persistent metadata archives.
 url: "https://github.com/Peskinator/homeassistant-addons/tree/main/songmirror"
