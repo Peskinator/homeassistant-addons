@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.7.6-1
+
+- Automated update to upstream SFTPGo v2.7.6.
+
 ## 2.7.5-1
 
 - Automated update to upstream SFTPGo v2.7.5.
