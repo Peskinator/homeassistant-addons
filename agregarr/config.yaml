@@ -1,6 +1,6 @@
 name: "Agregarr"
 slug: "agregarr"
-version: "2.10.0"
+version: "2.11.0"
 description: >
   Build and maintain Plex collections from list providers, request sources, and media automation tools.
 url: "https://github.com/Peskinator/homeassistant-addons/tree/main/agregarr"
