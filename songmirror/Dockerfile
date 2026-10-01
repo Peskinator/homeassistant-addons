@@ -1,4 +1,4 @@
-ARG BUILD_SONGMIRROR_IMAGE="ghcr.io/ahnafnafee/songmirror@sha256:0affab7e95115ca4fbb910edeb1ddd1eb34be11506df1e59d02ee3b21839f32c"
+ARG BUILD_SONGMIRROR_IMAGE="ghcr.io/ahnafnafee/songmirror@sha256:5411170fbf8731a1aadba73f14590b5bc706f4defa72f7fd560d705cdc414374"
 FROM ${BUILD_SONGMIRROR_IMAGE}
 
 ARG BUILD_ARCH
