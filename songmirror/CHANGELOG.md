@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.21
+
+- Automated update to upstream container digest `sha256:bbb377b9f25c837515b36fb54da34f1a77741357ef02617bd978335dd8afe194`.
+
 ## 0.1.20
 
 - Automated update to upstream container digest `sha256:69a492f3f8c37d71f204f3762fceb420419f11e888aa36f565eb7d8dc3b41cf6`.
