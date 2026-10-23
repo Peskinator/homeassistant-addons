@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.12.1
+
+- Automated update to stable `bitr8/agregarr:2.12.1`.
+
 ## 2.12.0
 
 - Automated update to stable `bitr8/agregarr:2.12.0`.
