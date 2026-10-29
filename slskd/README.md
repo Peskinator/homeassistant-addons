@@ -68,3 +68,9 @@ This mode is deliberately off by default for existing installations. Turn it on 
 entering Soulseek credentials if you want to connect only through a VPN. The tests verify
 traffic blocking before/after simulated tunnel loss, but your real VPN exit IP and a
 disconnect test must also be verified after entering your private VPN configuration.
+
+VPN startup now checks that the tunnel's public IP differs from the home connection,
+stops OpenVPN to verify public IPv4/IPv6 access is blocked for the slskd account,
+then reconnects and verifies the exit again before starting Soulseek. The result is
+written to private app configuration `vpn/status.json`; the home public IP is never
+written to that file. If verification fails, slskd remains stopped.

@@ -17,8 +17,9 @@ for tool in iptables ip6tables; do
     "$tool" -w -A OUTPUT -o tun0 -j ACCEPT
     "$tool" -w -A INPUT -i tun0 -j ACCEPT
 done
-# Only the root-owned OpenVPN process can reach the VPN endpoint directly.
-iptables -w -A OUTPUT -d "$VPN_IP" -p "$VPN_PROTOCOL" --dport "$VPN_PORT" -m owner --uid-owner 0 -j ACCEPT
+# Permit only the pinned VPN transport endpoint directly. HA OS does not
+# provide xt_owner on every kernel; do not depend on that optional module.
+iptables -w -A OUTPUT -d "$VPN_IP" -p "$VPN_PROTOCOL" --dport "$VPN_PORT" -j ACCEPT
 # Allow authenticated web/API access from HA and the LAN, including IPv6.
 for subnet in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16; do
     iptables -w -A INPUT -s "$subnet" -p tcp --dport 5030 -j ACCEPT

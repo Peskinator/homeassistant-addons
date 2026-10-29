@@ -1,6 +1,6 @@
 name: "slskd"
 slug: slskd
-version: "0.26.2-3"
+version: "0.26.2-4"
 description: "Persistent Soulseek downloader for SoulSync, with a dedicated sharing folder."
 url: "https://github.com/Peskinator/homeassistant-addons/tree/main/slskd"
 arch:

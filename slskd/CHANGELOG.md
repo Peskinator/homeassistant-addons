@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.26.2-4
+
+- Use an HA OS-compatible VPN endpoint rule without the optional xt_owner kernel module.
+- Verify a changed VPN exit IP and perform a live disconnect/reconnect test before starting Soulseek.
+- Write private VPN verification status without recording the home public IP.
+
 ## 0.26.2-3
 
 - Add optional app-only PrivadoVPN OpenVPN routing with an IPv4/IPv6 kill switch.
