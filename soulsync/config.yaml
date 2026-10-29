@@ -1,0 +1,43 @@
+name: "SoulSync"
+slug: soulsync
+version: "3.6.0-1"
+description: "Music requests, discovery, downloads and library management with Plex integration."
+url: "https://github.com/Peskinator/homeassistant-addons/tree/main/soulsync"
+arch:
+  - amd64
+startup: application
+boot: auto
+init: true
+timeout: 30
+# Stop SQLite writers while Home Assistant backs up the private app state.
+backup: cold
+panel_icon: mdi:music-box-multiple
+ports:
+  "8008/tcp": 8008
+  "8888/tcp": null
+  "8889/tcp": null
+ports_description:
+  "8008/tcp": "SoulSync web interface"
+  "8888/tcp": "Optional Spotify OAuth callback"
+  "8889/tcp": "Optional Tidal OAuth callback"
+webui: "http://[HOST]:[PORT:8008]/"
+watchdog: "tcp://[HOST]:[PORT:8008]"
+map:
+  - type: media
+    read_only: false
+  - type: share
+    read_only: false
+options:
+  puid: 1000
+  pgid: 1000
+  umask: "002"
+  media_root: "/media/soulsync"
+  downloads_path: "/share/soulsync/downloads"
+  import_path: "/share/soulsync/inbox"
+schema:
+  puid: "int(1,)"
+  pgid: "int(1,)"
+  umask: "match(^0[0-7]{2}$)"
+  media_root: str
+  downloads_path: str
+  import_path: str

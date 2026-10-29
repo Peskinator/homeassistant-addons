@@ -1,0 +1,23 @@
+name: Validate SoulSync persistence
+on:
+  push:
+    paths:
+      - "soulsync/**"
+      - "scripts/*soulsync*"
+      - ".github/workflows/*soulsync*"
+  pull_request:
+    paths:
+      - "soulsync/**"
+      - "scripts/*soulsync*"
+      - ".github/workflows/*soulsync*"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests -p 'test_soulsync*.py'
+      - run: python3 scripts/test_soulsync_persistence.py
