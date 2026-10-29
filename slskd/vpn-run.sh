@@ -21,6 +21,10 @@ case "$VPN_PROTOCOL" in udp|udp4|'') VPN_PROTOCOL=udp;; tcp|tcp-client|tcp4|tcp4
 [[ "$VPN_PORT" =~ ^[0-9]+$ && "$VPN_HOST" =~ ^[a-zA-Z0-9._-]+$ ]] || exit 1
 VPN_IP="$(getent ahostsv4 "$VPN_HOST" | awk '!found {print $1; found=1}')"
 [[ -n "$VPN_IP" ]] || { echo 'Cannot resolve the PrivadoVPN endpoint; slskd remains stopped.' >&2; exit 1; }
+# Keep browser replies on the original LAN path after redirect-gateway adds
+# its tunnel routes. The firewall still allows only established web replies.
+read -r ORIGINAL_GATEWAY ORIGINAL_INTERFACE < <(ip -4 route show default | awk '$1=="default" {print $3" "$5;exit}')
+/bin/bash /ha-vpn-lan-routes.sh "$OPTIONS" "$ORIGINAL_GATEWAY" "$ORIGINAL_INTERFACE"
 # Compare addresses in memory only; never record the home public IP.
 HOME_TRACE="$(wget -4 -qO- -T 10 -t 1 https://1.1.1.1/cdn-cgi/trace)" || { echo 'Cannot obtain the baseline address; slskd remains stopped.' >&2; exit 1; }
 HOME_IP="$(printf '%s\n' "$HOME_TRACE" | awk -F= '$1=="ip"{print $2}')"

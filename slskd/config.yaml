@@ -1,6 +1,6 @@
 name: "slskd"
 slug: slskd
-version: "0.26.2-4"
+version: "0.26.2-5"
 description: "Persistent Soulseek downloader for SoulSync, with a dedicated sharing folder."
 url: "https://github.com/Peskinator/homeassistant-addons/tree/main/slskd"
 arch:
@@ -44,6 +44,8 @@ options:
   vpn_enabled: false
   vpn_username: ""
   vpn_password: ""
+  vpn_lan_subnets:
+    - "192.168.0.0/16"
 schema:
   soulseek_username: str
   soulseek_password: password
@@ -58,3 +60,5 @@ schema:
   vpn_enabled: bool
   vpn_username: str
   vpn_password: password
+  vpn_lan_subnets:
+    - str

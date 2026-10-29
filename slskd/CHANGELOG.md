@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.26.2-5
+
+- Preserve the LAN return route for the authenticated web UI when the VPN is active.
+- Test browser access across a routed LAN while tunnel default routes are installed.
+
 ## 0.26.2-4
 
 - Use an HA OS-compatible VPN endpoint rule without the optional xt_owner kernel module.

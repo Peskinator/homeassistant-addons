@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends openvpn iptable
 COPY run.sh /ha-run.sh
 COPY vpn-run.sh /ha-vpn-run.sh
 COPY vpn-firewall.sh /ha-vpn-firewall.sh
-RUN chmod 755 /ha-run.sh /ha-vpn-run.sh /ha-vpn-firewall.sh
+COPY vpn-lan-routes.sh /ha-vpn-lan-routes.sh
+RUN chmod 755 /ha-run.sh /ha-vpn-run.sh /ha-vpn-firewall.sh /ha-vpn-lan-routes.sh
 ENTRYPOINT ["/bin/bash", "/ha-run.sh"]
 CMD ["./slskd"]

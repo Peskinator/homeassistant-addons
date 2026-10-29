@@ -74,3 +74,9 @@ stops OpenVPN to verify public IPv4/IPv6 access is blocked for the slskd account
 then reconnects and verifies the exit again before starting Soulseek. The result is
 written to private app configuration `vpn/status.json`; the home public IP is never
 written to that file. If verification fails, slskd remains stopped.
+
+`vpn_lan_subnets` identifies browser/client LAN networks whose web replies should return
+through HA's original gateway (default `192.168.0.0/16`). This prevents VPN default
+routes from breaking local web access. It does not permit arbitrary non-VPN outbound
+traffic: the firewall still permits only established port-5030 replies to private LAN
+addresses. If your LAN uses a different range, set it explicitly, avoiding VPN subnet overlap.
