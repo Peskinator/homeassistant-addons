@@ -77,4 +77,7 @@ if [[ "$(jq -r '.soulseek_username' "$OPTIONS")" == "" || "$(jq -r '.soulseek_pa
     echo 'slskd is ready. Enter Soulseek credentials in the Home Assistant app Configuration tab, then restart.'
 fi
 echo "Persistent slskd state: /data; downloads: $DOWNLOADS; runtime: $PUID:$PGID"
+if [[ "$(jq -r '.vpn_enabled // false' "$OPTIONS")" == true ]]; then
+    exec /bin/bash /ha-vpn-run.sh "$@"
+fi
 exec /entrypoint.sh "$@"

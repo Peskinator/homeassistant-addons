@@ -10,7 +10,11 @@ LABEL io.hass.name="slskd" \
       io.hass.version="${BUILD_VERSION}" \
       org.opencontainers.image.source="https://github.com/Peskinator/homeassistant-addons" \
       org.opencontainers.image.revision="${BUILD_REF}"
+RUN apt-get update && apt-get install -y --no-install-recommends openvpn iptables iproute2 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 COPY run.sh /ha-run.sh
-RUN chmod 755 /ha-run.sh
+COPY vpn-run.sh /ha-vpn-run.sh
+COPY vpn-firewall.sh /ha-vpn-firewall.sh
+RUN chmod 755 /ha-run.sh /ha-vpn-run.sh /ha-vpn-firewall.sh
 ENTRYPOINT ["/bin/bash", "/ha-run.sh"]
 CMD ["./slskd"]

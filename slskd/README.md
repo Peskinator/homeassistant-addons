@@ -46,3 +46,25 @@ Soulseek connections. Web port 5030 is for your LAN; it has its own authenticati
 The daily workflow follows official stable releases and pinned versioned GHCR images,
 then builds and tests replacement/backup persistence before bumping the HA app version.
 Only amd64 is advertised until other architectures have been tested.
+
+## PrivadoVPN for this app only
+
+Premium PrivadoVPN supports manual OpenVPN profiles. Download one from your PrivadoVPN
+dashboard and put it at `/addon_configs/<repository>_slskd/vpn/privado.ovpn`. Choose an
+IPv4 UDP or TCP profile with one remote endpoint. Enter its manual OpenVPN username and
+password in `vpn_username` and `vpn_password`, set `vpn_enabled: true`, then start the app.
+The OpenVPN login is separate from your Soulseek login. Keep the profile and passwords
+in app configuration; never put them in the public repository or paste them in logs.
+
+The tunnel and firewall live inside slskd's own container network. They do not change HA,
+Plex, SoulSync, the Windows PC or other apps' routes. NET_ADMIN and `/dev/net/tun` are used
+only for this container's tunnel. With VPN enabled, missing configuration or a failed VPN
+prevents slskd from starting. Actual IPv4 and IPv6 firewall rules allow public traffic
+only through `tun0`; DNS uses that tunnel too. Web/API replies remain available on the
+private HA/LAN network. A fatal OpenVPN exit stops slskd. The peer port on the host does
+not bypass the VPN firewall; VPN-side incoming connectivity depends on your provider.
+
+This mode is deliberately off by default for existing installations. Turn it on before
+entering Soulseek credentials if you want to connect only through a VPN. The tests verify
+traffic blocking before/after simulated tunnel loss, but your real VPN exit IP and a
+disconnect test must also be verified after entering your private VPN configuration.
