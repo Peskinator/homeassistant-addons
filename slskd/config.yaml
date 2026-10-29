@@ -1,0 +1,50 @@
+name: "slskd"
+slug: slskd
+version: "0.26.2-1"
+description: "Persistent Soulseek downloader for SoulSync, with a dedicated sharing folder."
+url: "https://github.com/Peskinator/homeassistant-addons/tree/main/slskd"
+arch:
+  - amd64
+startup: application
+boot: auto
+init: true
+timeout: 30
+backup: cold
+panel_icon: mdi:folder-music
+ports:
+  "5030/tcp": 5030
+  "50300/tcp": 50300
+ports_description:
+  "5030/tcp": "Authenticated slskd web interface and API"
+  "50300/tcp": "Soulseek peer connections"
+webui: "http://[HOST]:[PORT:5030]/"
+watchdog: "tcp://[HOST]:[PORT:5030]"
+map:
+  - type: media
+    read_only: true
+  - type: share
+    read_only: false
+  - type: addon_config
+    read_only: false
+options:
+  soulseek_username: ""
+  soulseek_password: ""
+  web_username: "admin"
+  web_password: ""
+  puid: 1000
+  pgid: 1000
+  downloads_path: "/share/soulsync/downloads"
+  incomplete_path: "/share/soulsync/incomplete"
+  shared_dirs:
+    - "/share/slskd/shared"
+schema:
+  soulseek_username: str
+  soulseek_password: password
+  web_username: str
+  web_password: password
+  puid: "int(1,)"
+  pgid: "int(1,)"
+  downloads_path: str
+  incomplete_path: str
+  shared_dirs:
+    - str

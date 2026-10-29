@@ -1,0 +1,38 @@
+name: Sync stable slskd releases
+on:
+  schedule:
+    - cron: "37 6 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: sync-slskd-upstream
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests -p 'test_slskd*.py'
+      - name: Check stable release and versioned image
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/sync_slskd_upstream.py
+      - id: changes
+        run: |
+          if git diff --quiet; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.changes.outputs.changed == 'true'
+        name: Validate rebuild and persistence before publishing
+        # Emulate Supervisor backup access to the non-root app's private keys.
+        run: sudo python3 scripts/test_slskd_persistence.py
+      - if: steps.changes.outputs.changed == 'true'
+        name: Publish Home Assistant version
+        run: |
+          git config user.name "peskinator-app-updater[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add slskd/Dockerfile slskd/config.yaml slskd/CHANGELOG.md
+          git diff --cached --check
+          git commit -m "chore(slskd): update stable upstream release"
+          git pull --rebase origin main
+          git push origin HEAD:main
