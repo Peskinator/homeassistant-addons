@@ -24,7 +24,8 @@ jobs:
           if git diff --quiet; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
       - if: steps.changes.outputs.changed == 'true'
         name: Validate rebuild and persistence before publishing
-        run: python3 scripts/test_soulsync_persistence.py
+        # Emulate Supervisor backup access to the non-root app's private keys.
+        run: sudo python3 scripts/test_soulsync_persistence.py
       - if: steps.changes.outputs.changed == 'true'
         name: Publish Home Assistant version
         run: |

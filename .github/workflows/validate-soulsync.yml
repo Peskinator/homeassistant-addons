@@ -20,4 +20,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 -m unittest discover -s tests -p 'test_soulsync*.py'
-      - run: python3 scripts/test_soulsync_persistence.py
+      # Emulate Supervisor backup access to the non-root app's private keys.
+      - run: sudo python3 scripts/test_soulsync_persistence.py
