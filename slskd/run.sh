@@ -68,7 +68,7 @@ jq -n --slurpfile options "$OPTIONS" --slurpfile credentials /config/connection.
    transfers:{download:{destination:{permissions:{mode:"664"}}}},
    web:{port:5030,https:{disabled:true},authentication:{disabled:false,username:$o.web_username,
         password:(if $o.web_password=="" then $c.web_password else $o.web_password end),
-        jwt:{key:$c.jwt_key},api_keys:{soulsync:{key:$c.api_key,role:"ReadWrite",cidr:"172.30.32.0/23,127.0.0.0/8,::1/128"}}}}}
+        jwt:{key:$c.jwt_key},api_keys:{soulsync:{key:$c.api_key,role:"ReadWrite",cidr:"172.30.32.0/23,fd0c:ac1e:2100::/64,127.0.0.0/8,::1/128"}}}}}
 ' > /data/slskd.yml.tmp
 chown "$PUID:$PGID" /data/slskd.yml.tmp
 chmod 600 /data/slskd.yml.tmp
