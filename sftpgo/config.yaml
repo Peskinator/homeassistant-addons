@@ -1,6 +1,7 @@
 name: "SFTPGo"
 slug: "sftpgo"
-version: "2.7.6-1"
+version: "2.7.6-2"
+image: "ghcr.io/peskinator/ha-sftpgo"
 description: >
   Self-hosted SFTP server with a web admin UI, backed by persistent Home Assistant storage.
 url: "https://github.com/Peskinator/homeassistant-addons/tree/main/sftpgo"
