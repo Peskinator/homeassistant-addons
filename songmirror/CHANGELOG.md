@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.26
+
+- Download the verified GitHub-built image instead of building on the Home Assistant server.
+
 ## 0.1.25
 
 - Automated update to upstream container digest `sha256:40ebe51b237c30e0ee7dd5c276315abc46c750711b59328f15acf35b492862fd`.
