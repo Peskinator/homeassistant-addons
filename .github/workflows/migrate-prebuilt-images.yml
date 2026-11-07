@@ -1,0 +1,65 @@
+name: Migrate apps to verified GitHub-built images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/migrate-prebuilt-images.yml
+  workflow_dispatch:
+    inputs:
+      app:
+        description: App to migrate after its public image is published and verified
+        type: choice
+        required: true
+        options:
+          - all
+          - librarydownloadarr
+          - sftpgo
+          - songmirror
+          - soulsync
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  migrate:
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [librarydownloadarr, sftpgo, songmirror, soulsync]
+    concurrency:
+      group: sync-${{ matrix.app }}-upstream
+      cancel-in-progress: false
+    if: github.event_name == 'push' || inputs.app == 'all' || inputs.app != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select requested app
+        id: selected
+        env:
+          REQUESTED: ${{ inputs.app }}
+          APP: ${{ matrix.app }}
+        run: |
+          if [ -z "$REQUESTED" ] || [ "$REQUESTED" = all ] || [ "$REQUESTED" = "$APP" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; fi
+      - run: python3 -m unittest discover -s tests -p 'test_publish_app_image.py'
+      - name: Build, publish, verify anonymous pull, then update the manifest
+        if: steps.selected.outputs.run == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          APP: ${{ matrix.app }}
+        run: python3 scripts/publish_app_image.py "$APP" --migrate
+      - name: Publish the verified Home Assistant update
+        if: steps.selected.outputs.run == 'true'
+        env:
+          APP: ${{ matrix.app }}
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "peskinator-app-updater[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$APP/config.yaml" "$APP/CHANGELOG.md"
+          git diff --cached --check
+          git commit -m "build($APP): use verified GitHub-built image"
+          git pull --rebase origin main
+          git push origin HEAD:main

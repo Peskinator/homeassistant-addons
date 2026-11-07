@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+  packages: write
 concurrency:
   group: sync-soulsync-upstream
   cancel-in-progress: false
@@ -26,6 +27,11 @@ jobs:
         name: Validate rebuild and persistence before publishing
         # Emulate Supervisor backup access to the non-root app's private keys.
         run: sudo python3 scripts/test_soulsync_persistence.py
+      - if: steps.changes.outputs.changed == 'true'
+        name: Publish and verify the image before the HA version
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish_app_image.py soulsync
       - if: steps.changes.outputs.changed == 'true'
         name: Publish Home Assistant version
         run: |

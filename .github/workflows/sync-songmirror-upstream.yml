@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 concurrency:
   group: sync-songmirror-upstream
@@ -22,9 +23,11 @@ jobs:
         run: |
           if git diff --quiet; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
       - if: steps.changes.outputs.changed == 'true'
+        name: Publish and verify the image before the HA version
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          version="$(sed -n 's/^version: "\(.*\)"$/\1/p' songmirror/config.yaml)"
-          docker build --build-arg BUILD_ARCH=amd64 --build-arg BUILD_VERSION="$version" --build-arg BUILD_REPOSITORY="Peskinator/homeassistant-addons" --tag "peskinator-songmirror:$version" songmirror
+          python3 scripts/publish_app_image.py songmirror
       - if: steps.changes.outputs.changed == 'true'
         run: |
           git config user.name "peskinator-app-updater[bot]"
@@ -32,4 +35,5 @@ jobs:
           git add songmirror/Dockerfile songmirror/config.yaml songmirror/CHANGELOG.md
           git diff --cached --check
           git commit -m "chore(songmirror): update upstream container digest"
-          git push
+          git pull --rebase origin main
+          git push origin HEAD:main
