@@ -1,6 +1,7 @@
 name: "LibraryDownloadarr"
 slug: "librarydownloadarr"
-version: "0.1.0"
+version: "0.1.1"
+image: "ghcr.io/peskinator/ha-librarydownloadarr"
 logo: "logo.png"
 description: >
   A self-hosted web interface to browse and download

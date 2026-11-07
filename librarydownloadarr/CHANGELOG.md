@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Download the verified GitHub-built image instead of building on the Home Assistant server.
+
 ## 0.1.0
 
 - Initial public Home Assistant App wrapper release, pinned to the current
