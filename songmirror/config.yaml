@@ -1,6 +1,6 @@
 name: "SongMirror"
 slug: songmirror
-version: "0.1.26"
+version: "0.1.27"
 image: "ghcr.io/peskinator/ha-songmirror"
 description: >-
   Self-hosted playlist sync with scheduled, persistent metadata archives.
