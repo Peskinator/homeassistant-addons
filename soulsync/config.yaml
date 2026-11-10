@@ -1,6 +1,6 @@
 name: "SoulSync"
 slug: soulsync
-version: "3.6.3-2"
+version: "3.6.4-1"
 image: "ghcr.io/peskinator/ha-soulsync"
 description: "Music requests, discovery, downloads and library management with Plex integration."
 url: "https://github.com/Peskinator/homeassistant-addons/tree/main/soulsync"

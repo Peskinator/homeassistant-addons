@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.6.4-1
+
+- Update to stable SoulSync 3.6.4, pinned to `sha256:c402c36f7f2876ac9ef665d654f6aacb9ea5d70f6f30462bb5cb6e4069ec13a1`.
+
 ## 3.6.3-2
 
 - Download the verified GitHub-built image instead of building on the Home Assistant server.
