@@ -1,5 +1,5 @@
-ARG BUILD_SOULSYNC_VERSION="3.6.6"
-ARG BUILD_SOULSYNC_IMAGE="ghcr.io/nezreka/soulsync@sha256:0f2abdb5a2d27c863457f2ace16215c4c38be65ec0d9cb7fd6a71c719c620cdc"
+ARG BUILD_SOULSYNC_VERSION="3.6.7"
+ARG BUILD_SOULSYNC_IMAGE="ghcr.io/nezreka/soulsync@sha256:7506b7e7b8c46b3414b5427c224a4f579b40058c7d9a8aaf9d8680eac9f73a97"
 FROM ${BUILD_SOULSYNC_IMAGE} AS upstream
 RUN /opt/venv/bin/python -c 'import json,os; json.dump({k:v for k,v in os.environ.items() if k not in {"HOSTNAME","PWD","SHLVL","_"}}, open("/ha-upstream-env.json","w"))'
 
@@ -14,7 +14,7 @@ ARG BUILD_DATE
 ARG BUILD_REF
 ARG BUILD_REPOSITORY="Peskinator/homeassistant-addons"
 ARG BUILD_VERSION
-ARG BUILD_SOULSYNC_VERSION="3.6.6"
+ARG BUILD_SOULSYNC_VERSION="3.6.7"
 LABEL io.hass.name="SoulSync" \
       io.hass.description="Music requests, discovery, downloads and library management." \
       io.hass.arch="${BUILD_ARCH}" \
