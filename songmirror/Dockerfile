@@ -31,8 +31,10 @@ ENV SONGMIRROR_DATA_DIR=/data \
     SONG_CACHE_FILE=/data/song_cache.db \
     DOWNLOAD_STATE_FILE=/data/download_state.json
 
-COPY run.sh dual_stack.py /
-RUN chmod 0755 /run.sh
+COPY --chmod=0755 run.sh /
+COPY dual_stack.py /
+
+USER 0:0
 
 EXPOSE 8080
 
