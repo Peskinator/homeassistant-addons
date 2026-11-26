@@ -34,6 +34,8 @@ ENV SONGMIRROR_DATA_DIR=/data \
 COPY --chmod=0755 run.sh /
 COPY dual_stack.py /
 
+USER 0:0
+
 EXPOSE 8080
 
 # Serve both address families without running the scheduler twice.
