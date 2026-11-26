@@ -50,3 +50,20 @@ jobs:
           print("SongMirror serves both IP families as UID 1000 and can open and update legacy state.")
           '
           test "$(sudo stat -c '%u:%g %a' "$data_dir/options.json")" = '0:0 600'
+  dispatch:
+    if: github.event.head_commit.message == 'ci(songmirror): dispatch the verified release'
+    needs: smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Start the digest sync from the verified merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN: 84b319dd5d1d7570b3ca208f191b1247974456d2
+        run: |
+          main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          test "$main_sha" = "$EXPECTED_MAIN"
+          gh workflow run sync-songmirror-upstream.yml --repo "$GITHUB_REPOSITORY" --ref main
