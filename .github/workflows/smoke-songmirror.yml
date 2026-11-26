@@ -51,7 +51,8 @@ jobs:
           '
           test "$(sudo stat -c '%u:%g %a' "$data_dir/options.json")" = '0:0 600'
   dispatch:
-    if: github.event.head_commit.message == 'ci(songmirror): dispatch the verified release'
+    if: >-
+      github.event.head_commit.message == 'ci(songmirror): dispatch the verified release'
     needs: smoke
     runs-on: ubuntu-latest
     timeout-minutes: 3
