@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.7.0-1
+
+- Update to stable SoulSync 3.7.0, pinned to `sha256:5dc5c3ace13f321a4d342b33baa8c09b34e4ed711aabf84bcf57e83f817c6a14`.
+
 ## 3.6.9-1
 
 - Update to stable SoulSync 3.6.9, pinned to `sha256:f6f9d7be4fad30c078bbb9b90a75491f04ed1ba50354ca55c5fde94f1d037768`.
